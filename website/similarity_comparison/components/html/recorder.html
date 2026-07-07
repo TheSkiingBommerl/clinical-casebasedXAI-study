@@ -1,0 +1,129 @@
+<!-- This files was created by Sonnet 4.6 -->
+<!DOCTYPE html>
+<html>
+<body style="margin:0; display:flex; flex-direction:column; align-items:center;
+             justify-content:center; height:100vh; font-family:sans-serif;
+             background:#0e1117; color:white;">
+    <p style="margin-bottom:10px; font-size:13px;">ECG Study — Screen Recording</p>
+    <button id="btn" onclick="startRecording()"
+        style="padding:10px 20px; font-size:14px; cursor:pointer;
+            background:#ff4b4b; color:white; border:none; border-radius:8px;">
+        🔴 Start Recording
+    </button>
+    <p id="status" style="font-size:12px; color:gray; margin-top:8px;">Click once to begin</p>
+    <script>
+      const user = new URLSearchParams(window.location.search).get("user");
+      const challenge = new URLSearchParams(window.location.search).get("challenge");
+      let chunkIndex = 0;
+      let pendingUploads = [];
+      let pollInterval = null;
+      let requestInterval = null;
+
+      // Pick the first supported codec
+      function getSupportedMimeType() {
+          const types = [
+              "video/webm;codecs=vp9",
+              "video/webm;codecs=vp8",
+              "video/webm",
+              "video/mp4;codecs=avc1",
+              "video/mp4",
+          ];
+          return types.find(t => MediaRecorder.isTypeSupported(t)) || "";
+      }
+
+      const mimeType = getSupportedMimeType();
+      const ext = mimeType.includes("mp4") ? "mp4" : "webm";
+
+      async function sendChunk(data) {
+          const idx = chunkIndex++;
+          const p = fetch(`/upload?user=${user}&challenge=${challenge}&chunk=${idx}&ext=${ext}`, {
+              method: "POST", body: data
+          });
+          pendingUploads.push(p);
+          await p;
+      }
+      async function finalize() {
+          await Promise.all(pendingUploads);
+          await fetch(`/stop?user=${user}&challenge=${challenge}`, { method: "POST" });
+      }
+
+      async function startRecording() {
+          try {
+              // No mediaSource constraint — works on Chrome, Firefox, and Edge
+              const stream = await navigator.mediaDevices.getDisplayMedia({
+                  video: {
+                      width: { ideal: 1920, max: 1920 },
+                      height: { ideal: 1080, max: 1080 }
+                  },
+                  audio: false
+              });
+
+              const mimeType = getSupportedMimeType();
+              const options = mimeType ? { mimeType } : {};
+              const mediaRecorder = new MediaRecorder(stream, options);
+
+              mediaRecorder.ondataavailable = async (e) => {
+                  if (e.data && e.data.size > 0) await sendChunk(e.data);
+              };
+
+              mediaRecorder.onstop = async () => {
+                  clearInterval(requestInterval);
+                  clearInterval(pollInterval);
+                  stream.getTracks().forEach(t => t.stop());
+                  await finalize();
+                  updateStatus("✅ Recording saved", false);
+              };
+
+              stream.getVideoTracks()[0].onended = () => {
+                  if (mediaRecorder.state !== "inactive") mediaRecorder.stop();
+              };
+
+              // No timeslice arg — use requestData() manually for Edge compat
+              mediaRecorder.start();
+
+              requestInterval = setInterval(() => {
+                  if (mediaRecorder.state === "recording") {
+                      mediaRecorder.requestData();
+                  }
+              }, 3000);
+
+              // Poll for stop signal from Streamlit
+              pollInterval = setInterval(async () => {
+                  try {
+                      const res = await fetch(`/check-stop?user=${user}&challenge=${challenge}`);
+                      const text = await res.text();
+                      if (text === "stop") {
+                          clearInterval(pollInterval);
+                          clearInterval(requestInterval);
+                          if (mediaRecorder.state !== "inactive") {
+                              mediaRecorder.requestData();
+                              mediaRecorder.stop();
+                          }
+                      }
+                  } catch(e) {}
+
+
+              }, 2000);
+
+              window._mediaRecorder = mediaRecorder;
+              updateStatus("✅ Recording...", true);
+          } catch (err) {
+              updateStatus("❌ " + (err.name === "NotAllowedError" ? "Permission denied" : err.message), false);
+          }
+      }
+
+      window.addEventListener("beforeunload", () => {
+          if (window._mediaRecorder && window._mediaRecorder.state !== "inactive") {
+              window._mediaRecorder.stop();
+              navigator.sendBeacon(`/stop?user=${user}&challenge=${challenge}`);
+          }
+      });
+
+      function updateStatus(msg, recording) {
+          document.getElementById("status").innerText = msg;
+          document.getElementById("btn").innerText = recording ? "✅ Recording" : "🔴 Start Recording";
+          document.getElementById("btn").disabled = recording;
+      }
+    </script>
+</body>
+</html>
