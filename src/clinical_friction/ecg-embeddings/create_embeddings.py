@@ -29,7 +29,7 @@ from fairseq_signals.models import build_model_from_checkpoint
 from fairseq_signals.models.classification.ecg_transformer_classifier import (
     ECGTransformerClassificationModel
 )
-from database.db_connection import store_data
+from clinical_friction.database.db_connection import store_data
 from collections import defaultdict
 
 

@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
-from database.useful_queries import get_ecg_signals
-from helpers.remove_padding import remove_zero_padding
+from clinical_friction.database.useful_queries import get_ecg_signals
+from clinical_friction.helpers.remove_padding import remove_zero_padding
 
 LEADS = ["DI", "DII", "DIII", "AVR", "AVL", "AVF", "V1", "V2", "V3", "V4", "V5", "V6"]
 MEASURES = ["DTW", "In_Population", "Out_Population"]
@@ -59,7 +59,7 @@ def shuffle_and_save(df_similarity: pd.DataFrame, df_ecg: pd.DataFrame, output_d
 
         # build parquet: original ECG + the 3 comparison ECGs in shuffled order
         match_ids = row.values[perm]
-        
+
         frames = [
             df_ecg[df_ecg["id"] == sample_id],
             *[df_ecg[df_ecg["id"] == mid] for mid in match_ids],
@@ -78,10 +78,10 @@ def shuffle_and_save(df_similarity: pd.DataFrame, df_ecg: pd.DataFrame, output_d
 
 
 def main():
-    
+
     df_similarity = build_similarity_table(SAMPLE_IDS, RESULT_PATHS, MEASURES)
     df_similarity.to_csv("similarity_measure/results/summary.csv")
-    
+
     all_ids = pd.unique(np.concatenate([df_similarity.values.ravel(), SAMPLE_IDS]))
     df_ecg = fetch_ecg_dataframe(all_ids)
 

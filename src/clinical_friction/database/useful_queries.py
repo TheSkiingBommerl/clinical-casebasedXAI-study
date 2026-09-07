@@ -1,8 +1,8 @@
-from database.db_connection import extract_data, extract_data_efficiently
-import numpy as np    
+from clinical_friction.database.db_connection import extract_data, extract_data_efficiently
+import numpy as np
 import pandas as pd
 
-def get_patient_info(patient_ids=None, dataset="code-test"): 
+def get_patient_info(patient_ids=None, dataset="code-test"):
 
     if patient_ids is None:
         query = f"""
@@ -25,7 +25,7 @@ def get_patient_info(patient_ids=None, dataset="code-test"):
     return pd.DataFrame(rows, columns=["id", "gender", "age"]).astype({"id": int, "gender": str, "age": int})
 
 
-def get_ecg_signals(patient_ids=None, dataset="code-test", filtered=False): 
+def get_ecg_signals(patient_ids=None, dataset="code-test", filtered=False):
 
     if filtered:
         db_table = "filtered_ecgs"
@@ -58,7 +58,7 @@ def get_ecg_signals(patient_ids=None, dataset="code-test", filtered=False):
 
     for row in rows:
         ids.append(int(row[0]))
-        
+
         sample = np.stack(row[1:]).astype(np.float32)
         data.append(sample)
 
@@ -72,7 +72,7 @@ def get_certainty(patient_ids=None, dataset="code-test"):
         query = f"""Select "id", "1dAVb", rbbb, lbbb, sb, af, st
                     From "{dataset}".prediction_certanties
                 """
-        
+
         rows = extract_data(query)
 
     else:
@@ -83,7 +83,7 @@ def get_certainty(patient_ids=None, dataset="code-test"):
         FROM "{dataset}".prediction_certanties
         WHERE id IN ({placeholders})
         """
-        
+
         rows = extract_data(query, patient_ids)
 
     return pd.DataFrame(rows, columns=["id", "1dAVb", "rbbb", "lbbb", "sb", "af", "st"]).astype({"id": int, "1dAVb": float, "rbbb": float, "lbbb": float, "sb": float, "af": float, "st": float})
@@ -95,7 +95,7 @@ def get_diagnostics(patient_ids=None, dataset="code-test", tablename="gold_lable
         query = f"""Select "id", "1dAVb", rbbb, lbbb, sb, af, st
                     From "{dataset}".{tablename}
                 """
-        
+
         rows = extract_data(query)
 
     else:
@@ -141,13 +141,13 @@ def get_embeddings(tablename, dataset="code-test", ids=None):
                     From "{dataset}".{tablename}
                     where id in ({placeholders})
                 """
-        
+
     else:
         query = f"""Select *
                 From "{dataset}".{tablename}
                 """
 
-        
+
     rows = extract_data(query, ids)
 
     return pd.DataFrame({
@@ -157,7 +157,7 @@ def get_embeddings(tablename, dataset="code-test", ids=None):
     })
 
 def get_ids(dataset="code-test"):
-    
+
     query = f"""
         SELECT id
         FROM "{dataset}".patient_data

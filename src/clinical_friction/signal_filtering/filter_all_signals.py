@@ -3,17 +3,17 @@ Filter ECG signals. This code filters the ECG signals from the filtered PTB-XL d
 When adjusted, it can also be used for Code-15 but keep in mind to also adjust the sampling frequancy in filters.py and the powerline interferance Hz in pipeline.py
 """
 
-from signal_filtering.pipeline import filter_pipeline
-from database.useful_queries import get_ecg_signals
-from database.db_connection import store_data
-from helpers.h5py_handling import write_h5py
-from helpers.remove_padding import remove_zero_padding, get_middle_segment
+from clinical_friction.signal_filtering.pipeline import filter_pipeline
+from clinical_friction.database.useful_queries import get_ecg_signals
+from clinical_friction.database.db_connection import store_data
+from clinical_friction.helpers.h5py_handling import write_h5py
+from clinical_friction.helpers.remove_padding import remove_zero_padding, get_middle_segment
 import numpy as np
 import pandas as pd
 
 query = """
         INSERT INTO "ptb-xl".filtered_ecgs
-        (id, DI, DII, DIII, AVR, AVL, AVF, V1, V2, V3, V4, V5, V6)   
+        (id, DI, DII, DIII, AVR, AVL, AVF, V1, V2, V3, V4, V5, V6)
         VALUES %s
 
         """
@@ -28,7 +28,7 @@ def save_db(ids, signals):
 
     rows = []
     for signal_id, signal in zip(ids, signals):
-        
+
         filtered_signal = filter_signal(signal)
 
         row = [int(signal_id)] + [lead.tolist() for lead in filtered_signal]
@@ -44,10 +44,10 @@ def save_h5py(ids, signals):
     for idx, signal in enumerate(signals):
         print(ids[idx])
         filtered_signal = filter_signal(signal)
-        
+
         row = [lead.tolist() for lead in filtered_signal]
         rows.append(row)
-    
+
     print("Saving to H5PY")
     write_h5py("signal_filtering/filtered_signals", rows, ids)
 
@@ -61,11 +61,7 @@ if __name__ == '__main__':
     ids = signals["id"].to_list()
     signals = np.stack(signals["signal"])
 
-    
+
     print("Starting ...")
     #save_h5py(ids, signals)
     save_db(ids, signals)
-
-    
-
-       

@@ -6,7 +6,7 @@ import numpy as np
 from scipy.signal import welch
 from scipy.ndimage import uniform_filter1d
 import matplotlib.pyplot as plt
-from database.useful_queries import get_ecg_signals
+from clinical_friction.database.useful_queries import get_ecg_signals
 import pandas as pd
 
 df = pd.read_csv("database/transform_and_load/ptb/datasets/filtered_ecg_experiment_2.csv")
@@ -52,4 +52,3 @@ axes[1].legend()
 
 plt.tight_layout()
 plt.show()
-

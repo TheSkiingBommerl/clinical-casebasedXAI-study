@@ -1,7 +1,9 @@
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
 import wfdb
-from database.db_connection import store_data
+
+from clinical_friction.database.db_connection import store_data
 
 df = pd.read_csv("database/transform_and_load/ptb/datasets/filtered_ecg_experiment_2.csv")
 
@@ -18,7 +20,7 @@ rows = []
 
 query = """
 INSERT INTO "ptb-xl".patient_data
-(id, gender, age, DI, DII, DIII, AVL, AVR, AVF, V1, V2, V3, V4, V5, V6)   
+(id, gender, age, DI, DII, DIII, AVL, AVR, AVF, V1, V2, V3, V4, V5, V6)
 VALUES %s
 """
 
@@ -53,6 +55,3 @@ for i in range(len(df)):
 
     if i%100 == 0:
         print(f"{i} signals saved")
-
-
-

@@ -2,16 +2,19 @@
 This file produces a graph that shows the amount of abnormality data in the filtered PTB-XL dataset
 """
 
-from database.db_connection import extract_data
 from collections import Counter
+
 import matplotlib.pyplot as plt
+
+from clinical_friction.database.db_connection import extract_data
+
 
 def get_AI_prediction():
 
     query = """Select "1dAVb", rbbb, lbbb, sb, st, af
                 From "ptb-xl".gold_lable
             """
-    
+
     rows = extract_data(query)
 
     return rows
@@ -55,10 +58,10 @@ bars = plt.bar(labels, values)
 for bar, val in zip(bars, values):
     plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.3,
              str(val), ha="center", va="bottom", fontsize=9)
-    
+
 plt.gca().spines["top"].set_visible(False)
 plt.gca().spines["right"].set_visible(False)
-    
+
 plt.xticks(rotation=45, ha='right')
 plt.xlabel("Abnormalities", fontweight="bold")
 plt.ylabel("Count", fontweight="bold")

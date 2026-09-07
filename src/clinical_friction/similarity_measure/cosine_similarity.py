@@ -1,7 +1,7 @@
 """
 Find most similar ECG signals using cosine similarity
 """
-from database.useful_queries import get_embeddings
+from clinical_friction.database.useful_queries import get_embeddings
 import numpy as np
 import csv
 
@@ -30,7 +30,7 @@ def get_similar_signals(embeddings, signal_id):
     target_signal = embedding_rows.pop(target)
 
     results = []
-    
+
     for i, signal in enumerate(embedding_rows):
         similarity_score = cosine_sim(signal, target_signal)
         results.append((embedding_ids[i], similarity_score))
@@ -50,7 +50,7 @@ if __name__ == '__main__':
     samples = [...]
 
     embeddings = get_embeddings(db_table_name)
-    
+
     for sample in samples:
         best_id, best_sim = get_similar_signals(embeddings, sample)
         print(sample, best_id, best_sim)
@@ -59,6 +59,3 @@ if __name__ == '__main__':
             writer = csv.writer(f)
             results = (sample, best_id, best_sim)
             writer.writerow(results)
-
-    
-

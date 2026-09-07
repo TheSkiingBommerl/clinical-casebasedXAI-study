@@ -3,10 +3,12 @@ Create hdf5 file, which is needed to make predictions with the model: https://gi
 """
 
 import numpy as np
-from scipy.signal import resample_poly
-from database.useful_queries import get_ecg_signals
-from helpers.h5py_handling import write_h5py
 import pandas as pd
+from scipy.signal import resample_poly
+
+from clinical_friction.database.useful_queries import get_ecg_signals
+from clinical_friction.helpers.h5py_handling import write_h5py
+
 
 def convert_signals():
     """
@@ -20,10 +22,10 @@ def convert_signals():
 
     signals = df["signal"]
     signals = np.stack(signals.to_numpy())
-    
+
     # resample signals from 500Hz to 400Hz (automatic-ecg-diagnosis model was trained on 400Hz signals)
     x_resampled = resample_poly(signals, up=4, down=5, axis=2)
-   
+
     # adjust the nr. of datapoints of signal (automatic-ecg-diagnosis expects a length of 4096)
     target_length = 4096
     current_length = x_resampled.shape[2]
@@ -35,7 +37,7 @@ def convert_signals():
         ((0, 0), (0, 0), (pad_left, pad_right)),
         mode="constant"
     )
-    
+
     # model expects shape: (nr. of signals, nr. of datapoints = 4096, nr of leads = 12)
     x_padded = np.transpose(x_padded, (0, 2, 1))
 

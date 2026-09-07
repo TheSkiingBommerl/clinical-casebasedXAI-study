@@ -2,8 +2,8 @@
 Provide pipeline used in filter_all_signals. When running this file plots will be shown in the browser comparing the unfiltered and filtered signal to each other
 """
 
-from signal_filtering.filters import butterworth_high, butterworth_low, notch
-from database.useful_queries import get_ecg_signals
+from clinical_friction.signal_filtering.filters import butterworth_high, butterworth_low, notch
+from clinical_friction.database.useful_queries import get_ecg_signals
 import numpy as np
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
@@ -106,13 +106,13 @@ def filter_pipeline(signal):
     signal = notch(signal, 50)
     # remove powerline inference at 60 Hz (for Code-test)
     #signal = notch(signal, 60)
-    
+
     return signal
 
 if __name__ == '__main__':
 
     ids = [655]
-    
+
     signal = get_ecg_signals(patient_ids=ids, dataset="ptb-xl")
     signal = signal["signal"].tolist()
     signal = np.squeeze(signal, axis=0)
@@ -120,7 +120,7 @@ if __name__ == '__main__':
     for idx, lead in enumerate(signal):
 
         filtered_lead = filter_pipeline(lead)
-    
+
         name_list = ["Original Lead", "Filtered Lead"]
         signal_list = [lead, filtered_lead]
 

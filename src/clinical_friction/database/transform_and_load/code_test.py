@@ -13,6 +13,8 @@ from psycopg2.extensions import connection
 from psycopg2.extras import execute_values
 from tqdm import tqdm
 
+import clinical_friction.database.db_connection as db
+
 
 def close_exception(err: BaseException):
     """Close the db connection if an exception occurs"""
@@ -23,8 +25,8 @@ def close_exception(err: BaseException):
         conn.close()
 
 
-@logger.catch(reraise=True, onerror=close_exception)
-def load_tracings(conn: connection, tracings: Path, attributes: Path):
+@logger.catch(reraise=True, onerror=db.close_exception)
+def load_tracings(tracings: Path, attributes: Path):
     """Load ECG tracings from hdf5 file into database"""
 
     with h5py.File(tracings, "r") as f:
@@ -73,6 +75,7 @@ def load_tracings(conn: connection, tracings: Path, attributes: Path):
     VALUES %s
     """
 
+    conn = db.db_conn()
     cur = conn.cursor()
     try:
         execute_values(cur, query, rows)
@@ -81,13 +84,15 @@ def load_tracings(conn: connection, tracings: Path, attributes: Path):
         logger.warning(f"ECG tracings have already been loaded")
 
     cur.close()
+    conn.close()
 
 
-@logger.catch(reraise=True)
-def load_annotations(conn: connection, data_path: Path, table_name: str):
+@logger.catch(reraise=True, onerror=db.close_exception)
+def load_annotations(data_path: Path, table_name: str):
     df = pd.read_csv(data_path)
 
     rows = []
+
 
     for i in range(827):
 
@@ -102,19 +107,14 @@ def load_annotations(conn: connection, data_path: Path, table_name: str):
         )
 
         rows.append(row)
-        def close_exception(err: BaseException):
-            """Close the db connection if an exception occurs"""
-            if isinstance(err, psycopg2.Error):
-                cur = err.cursor
-                conn = cur.connection
-                cur.close()
-                conn.close()
+
     query = f"""
     INSERT INTO "code-test".{table_name}
     (id, "1dAVb",RBBB,LBBB,SB,AF,ST)
     VALUES %s
     """
 
+    conn = db.db_conn()
     cur = conn.cursor()
 
     try:
@@ -125,3 +125,4 @@ def load_annotations(conn: connection, data_path: Path, table_name: str):
         logger.warning(f"Annotations for {str(data_path)} have already been loaded")
 
     cur.close()
+    conn.close()

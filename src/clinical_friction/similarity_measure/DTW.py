@@ -10,7 +10,7 @@ import csv
 import numpy as np
 from tslearn.metrics import dtw_path
 import time
-from helpers.h5py_handling import load_h5py
+from clinical_friction.helpers.h5py_handling import load_h5py
 
 RESULTS = "similarity_measure/results/dtw"
 
@@ -24,21 +24,21 @@ def get_most_similar(ids, data, id):
 
     filtered_data = data[mask]
     filtered_ids = ids[mask]
-   
+
     results = []
 
     print("Started Loop")
 
     for idx, signal in enumerate(filtered_data):
-        
+
         signal = np.asarray(signal)
 
         Q = np.ascontiguousarray(signal.T)
 
         path, dist = dtw_path(R, Q)
-       
+
         norm_c = dist / len(path)
-        
+
         sim = 1 / (1 + norm_c)
 
         results.append((filtered_ids[idx], sim))
@@ -50,14 +50,14 @@ def get_most_similar(ids, data, id):
 def process_sample(ids, data, sample):
 
     best_id, best_score, _ = get_most_similar(ids, data, sample)
-    
+
     with open(os.path.join(RESULTS, f"{sample}.csv"), "w", newline="") as f:
             writer = csv.writer(f)
             results = (sample, best_id, best_score)
             writer.writerow(results)
     print(f"Sample {sample} is done")
     return (sample, best_id, best_score)
-        
+
 
 if __name__ == '__main__':
 

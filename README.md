@@ -15,6 +15,7 @@ cd clinical-casebasedXAI-study
 
 # Create a virtual environment with uv and install all dependencies
 uv sync
+uv pip install -e ./
 
 # Activate the virtual environment
 source .venv/bin/activate
@@ -22,6 +23,7 @@ source .venv/bin/activate
 
 ### Setting up the database
 
+#### 1. Install PostgreSQL
 This project requires a working installation of [PostgreSQL](https://www.postgresql.org/download/).
 
 <details><summary><b>Installation instructions</b></summary>
@@ -43,17 +45,34 @@ brew install postgresql@18
 
 </details>
 
-First, create a database:
+#### 2. Create the database
 
+First, create a database:
 ``` bash
 createdb clinicalfriction
 ```
 
-- To install the required packages, create a virtual environment and install this repostiroy.
+Ensure its name is listed in the `.env` file under the `DB_NAME` key:
 
-    `pip install -r requirements.txt`
+```.env
+DB_NAME=clinicalfriction
+```
 
-- To set up the database, follow the instructions provided [here](database/README.md)
+#### 3. Initialize the database
+
+Open a terminal and activate the virtual environment.
+Then, run `clinical-friction-init-db` to download the datasets and add the necessary tables to the database.
+
+``` bash
+# Activate venv on MacOS / Linux
+source .venv/bin/activate
+
+# Activate venv on Windows
+.venv\Scripts\activate.bat
+
+# Download datasets (if not already downloaded) and populate the tables
+clinical-friction-init-db
+```
 
 
 
