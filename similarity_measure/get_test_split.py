@@ -9,7 +9,7 @@ import pandas as pd
 
 query = """
     SELECT id
-    FROM "code-15".gold_lable   
+    FROM "code-test".gold_lable   
     """
 
 rows = extract_data(query)

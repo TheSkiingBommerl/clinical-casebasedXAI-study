@@ -1,9 +1,9 @@
 CREATE TYPE gender_type AS ENUM ('FEMALE', 'MALE');
 
--- Code 15 Data
-CREATE SCHEMA "code-15";
+-- Code-test Data
+CREATE SCHEMA "code-test";
 
-CREATE TABLE "code-15".patient_data (
+CREATE TABLE "code-test".patient_data (
     id     bigint      NOT NULL,
     gender gender_type NOT NULL,
     age    integer     NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE "code-15".patient_data (
     PRIMARY KEY (id)
 );
 
-CREATE TABLE "code-15".filtered_ecgs (
+CREATE TABLE "code-test".filtered_ecgs (
     id     bigint      NOT NULL,
     di     numeric[],
     dii    numeric[],
@@ -39,7 +39,7 @@ CREATE TABLE "code-15".filtered_ecgs (
     PRIMARY KEY (id)
 );
 
-CREATE TABLE "code-15".dnn_annotations(
+CREATE TABLE "code-test".dnn_annotations(
     id int8 NOT NULL,
     "1dAVb" int2 NOT NULL,
     rbbb int2 NOT NULL,
@@ -50,7 +50,7 @@ CREATE TABLE "code-15".dnn_annotations(
     PRIMARY KEY (id)
 );
 
-CREATE TABLE "code-15".prediction_certanties (
+CREATE TABLE "code-test".prediction_certanties (
     id int8 NOT NULL,
     "1dAVb" numeric NOT NULL,
     rbbb numeric NOT NULL,
@@ -61,7 +61,7 @@ CREATE TABLE "code-15".prediction_certanties (
     PRIMARY KEY (id)
 );
 
-CREATE TABLE "code-15".gold_lable(
+CREATE TABLE "code-test".gold_lable(
     id int8 NOT NULL,
     "1dAVb" int2 NOT NULL,
     rbbb int2 NOT NULL,
@@ -72,12 +72,12 @@ CREATE TABLE "code-15".gold_lable(
     PRIMARY KEY (id)
 );
 
-CREATE TABLE "code-15".aed_model_embeddings (
+CREATE TABLE "code-test".aed_model_embeddings (
   id int8 PRIMARY KEY, 
   embedding _numeric
 );
 
-CREATE TABLE "code-15".fm_model_embeddings (
+CREATE TABLE "code-test".fm_model_embeddings (
   id int8 PRIMARY KEY, 
   embedding _numeric
 );
@@ -86,27 +86,27 @@ CREATE TABLE "code-15".fm_model_embeddings (
 CREATE SCHEMA "ptb-xl";
 
 CREATE TABLE "ptb-xl".patient_data AS
-TABLE "code-15".patient_data
+TABLE "code-test".patient_data
 WITH NO DATA;
 
 CREATE TABLE "ptb-xl".dnn_annotations AS
-TABLE "code-15".dnn_annotations
+TABLE "code-test".dnn_annotations
 WITH NO DATA;
 
 CREATE TABLE "ptb-xl".prediction_certanties AS
-TABLE "code-15".prediction_certanties
+TABLE "code-test".prediction_certanties
 WITH NO DATA;
 
 CREATE TABLE "ptb-xl".gold_lable AS
-TABLE "code-15".gold_lable
+TABLE "code-test".gold_lable
 WITH NO DATA;
 
 CREATE TABLE "ptb-xl".AED_model_embeddings AS
-TABLE "code-15".aed_model_embeddings
+TABLE "code-test".aed_model_embeddings
 WITH NO DATA;
 
 
 CREATE TABLE "ptb-xl".filtered_ecgs AS
-TABLE "code-15".filtered_ecgs
+TABLE "code-test".filtered_ecgs
 WITH NO DATA;
 

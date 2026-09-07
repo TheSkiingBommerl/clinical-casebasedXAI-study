@@ -41,7 +41,7 @@ def create_code15_emb():
     ]
 
     query = """
-    INSERT INTO "code-15".AED_model_embeddings
+    INSERT INTO "code-test".AED_model_embeddings
     (id, embedding)   
     VALUES %s
     """

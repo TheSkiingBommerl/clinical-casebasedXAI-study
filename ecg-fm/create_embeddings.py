@@ -221,7 +221,7 @@ data = list(zip(ids, embeddings))
 
 
 query = """
-INSERT INTO "code-15".FM_model_embeddings (id, embedding)
+INSERT INTO "code-test".FM_model_embeddings (id, embedding)
 VALUES %s;
 """
 

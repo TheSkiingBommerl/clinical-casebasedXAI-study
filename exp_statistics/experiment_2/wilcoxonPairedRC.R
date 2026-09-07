@@ -4,7 +4,7 @@ library(dplyr)
 library(tidyr)
 library(rcompanion)
 
-records <- read.csv("exp_statistics/experiment_2/novices_per_arm.csv")
+records <- read.csv("exp_statistics/experiment_2/records_per_arm.csv")
 
 wide <- records %>%
   pivot_wider(

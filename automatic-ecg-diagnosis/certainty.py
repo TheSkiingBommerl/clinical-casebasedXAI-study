@@ -1,5 +1,5 @@
 """
-Calculate the certainties of the Code-15 dataset and the filtered PTB-XL dataset
+Calculate the certainty for each prediction
 """
 
 import numpy as np
@@ -59,7 +59,7 @@ def in_pop_certainty(pred_rep):
     data = [[int(i)] + [float(v) for v in certainty[i]] for i in range(len(ids))]
 
     query = """
-    INSERT INTO "code-15".prediction_certainties (id, "1dAVb", rbbb, lbbb, sb, af, st)
+    INSERT INTO "code-test".prediction_certainties (id, "1dAVb", rbbb, lbbb, sb, af, st)
     VALUES %s
     """
 

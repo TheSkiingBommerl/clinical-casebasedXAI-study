@@ -2,7 +2,7 @@ from database.db_connection import extract_data, extract_data_efficiently
 import numpy as np    
 import pandas as pd
 
-def get_patient_info(patient_ids=None, dataset="code-15"): 
+def get_patient_info(patient_ids=None, dataset="code-test"): 
 
     if patient_ids is None:
         query = f"""
@@ -25,7 +25,7 @@ def get_patient_info(patient_ids=None, dataset="code-15"):
     return pd.DataFrame(rows, columns=["id", "gender", "age"]).astype({"id": int, "gender": str, "age": int})
 
 
-def get_ecg_signals(patient_ids=None, dataset="code-15", filtered=False): 
+def get_ecg_signals(patient_ids=None, dataset="code-test", filtered=False): 
 
     if filtered:
         db_table = "filtered_ecgs"
@@ -67,7 +67,7 @@ def get_ecg_signals(patient_ids=None, dataset="code-15", filtered=False):
         "signal": data
     })
 
-def get_certainty(patient_ids=None, dataset="code-15"):
+def get_certainty(patient_ids=None, dataset="code-test"):
     if patient_ids is None:
         query = f"""Select "id", "1dAVb", rbbb, lbbb, sb, af, st
                     From "{dataset}".prediction_certanties
@@ -89,7 +89,7 @@ def get_certainty(patient_ids=None, dataset="code-15"):
     return pd.DataFrame(rows, columns=["id", "1dAVb", "rbbb", "lbbb", "sb", "af", "st"]).astype({"id": int, "1dAVb": float, "rbbb": float, "lbbb": float, "sb": float, "af": float, "st": float})
 
 
-def get_diagnostics(patient_ids=None, dataset="code-15", tablename="gold_lable"):
+def get_diagnostics(patient_ids=None, dataset="code-test", tablename="gold_lable"):
 
     if patient_ids is None:
         query = f"""Select "id", "1dAVb", rbbb, lbbb, sb, af, st
@@ -132,7 +132,7 @@ def get_diagnostics(patient_ids=None, dataset="code-15", tablename="gold_lable")
             "diagnostic": diagnostics
         })
 
-def get_embeddings(tablename, dataset="code-15", ids=None):
+def get_embeddings(tablename, dataset="code-test", ids=None):
 
     if ids:
         placeholders = ",".join(["%s"] * len(ids))
@@ -156,7 +156,7 @@ def get_embeddings(tablename, dataset="code-15", ids=None):
 
     })
 
-def get_ids(dataset="code-15"):
+def get_ids(dataset="code-test"):
     
     query = f"""
         SELECT id

@@ -63,7 +63,7 @@ plt.xticks(rotation=45, ha='right')
 plt.xlabel("Abnormalities", fontweight="bold")
 plt.ylabel("Count", fontweight="bold")
 #plt.title("Frequency of Abnormalities - PTB-XL")
-#plt.title("Frequency of Abnormalities - Code-15")
+#plt.title("Frequency of Abnormalities - Code-test")
 
 plt.tight_layout()
 plt.show()

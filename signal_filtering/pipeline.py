@@ -104,7 +104,7 @@ def filter_pipeline(signal):
 
     # remove powerline inference at 50 Hz (for PTB-XL)
     signal = notch(signal, 50)
-    # remove powerline inference at 60 Hz (for Code-15)
+    # remove powerline inference at 60 Hz (for Code-test)
     #signal = notch(signal, 60)
     
     return signal

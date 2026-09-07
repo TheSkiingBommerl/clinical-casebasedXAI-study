@@ -1,5 +1,5 @@
 """
-Uses the model: https://github.com/antonior92/automatic-ecg-diagnosis to make predictions for Code-15 and the filtered PTB-XL dataset
+Uses the model: https://github.com/antonior92/automatic-ecg-diagnosis to make predictions for Code-test and the filtered PTB-XL dataset
 
 This file was based on: https://github.com/antonior92/automatic-ecg-diagnosis/blob/master/predict.py
 """
