@@ -75,7 +75,7 @@ class ECGFMDataset(Dataset):
 
     def __getitem__(self, idx):
         mat = loadmat(self.file_paths[idx])
-    
+
         metadata = ECGMetadata(
             sample_rate=400,
             num_samples=mat['ecg'].shape[1],
@@ -181,7 +181,7 @@ def infer(
     file_names = []
     for source, inp in loader:
         source = source.to(device)
-        out = model(source=source)        
+        out = model(source=source)
         inps.extend(inp)
         sources.append(source)
         logits.append(out['out'])
@@ -226,4 +226,3 @@ VALUES %s;
 """
 
 store_data(query, data)
-

@@ -2,12 +2,60 @@
 
 - Placeholder: Study describtion
 
-## Set-up 
+## Installation
 
-- To install the required packages, run the installation script in the repository:
+### Setting up the environment
+
+The [uv package manager](https://docs.astral.sh/uv/getting-started/installationhttps://docs.astral.sh/uv/getting-started/installation//) is recommended to replicate the environment with the proper Python version.
+
+``` bash
+# Clone the repository
+git clone https://github.com/TheSkiingBommerl/clinical-casebasedXAI-study.git
+cd clinical-casebasedXAI-study
+
+# Create a virtual environment with uv and install all dependencies
+uv sync
+
+# Activate the virtual environment
+source .venv/bin/activate
+```
+
+### Setting up the database
+
+This project requires a working installation of [PostgreSQL](https://www.postgresql.org/download/).
+
+<details><summary><b>Installation instructions</b></summary>
+
+_Windows_
+``` cmd
+winget install PostgreSQL.PostgreSQL.18
+```
+
+_Debian - Ubuntu_
+``` cmd
+sudo apt install postgresql
+```
+
+_MacOS_
+``` zsh
+brew install postgresql@18
+```
+
+</details>
+
+First, create a database:
+
+``` bash
+createdb clinicalfriction
+```
+
+- To install the required packages, create a virtual environment and install this repostiroy.
+
     `pip install -r requirements.txt`
 
 - To set up the database, follow the instructions provided [here](database/README.md)
+
+
 
 ## Experiments
 The websites for the experiments were hosted on our own server and users were managed using LDAP (Lightweight Directory Access Protocol) and for authentication we used OAuth2 with Authelia. Each participant received their individual credentials.
@@ -48,7 +96,3 @@ Data preprocessing:
 
 Models Used:
 - [Automatic ECG Diagnosis](https://github.com/antonior92/automatic-ecg-diagnosis): Follow this [instructions](automatic-ecg-diagnosis/README.md)
-
-
-
-

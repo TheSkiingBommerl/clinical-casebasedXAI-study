@@ -1,9 +1,14 @@
-CREATE TYPE gender_type AS ENUM ('FEMALE', 'MALE');
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'gender_type') THEN
+        CREATE TYPE gender_type AS ENUM ('FEMALE', 'MALE');
+    END IF;
+END $$;
 
 -- Code-test Data
-CREATE SCHEMA "code-test";
+CREATE SCHEMA IF NOT EXISTS "code-test";
 
-CREATE TABLE "code-test".patient_data (
+CREATE TABLE IF NOT EXISTS "code-test".patient_data (
     id     bigint      NOT NULL,
     gender gender_type NOT NULL,
     age    integer     NOT NULL,
@@ -21,8 +26,13 @@ CREATE TABLE "code-test".patient_data (
     v6     numeric[],
     PRIMARY KEY (id)
 );
-
-CREATE TABLE "code-test".filtered_ecgs (
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'gender_type') THEN
+        CREATE TYPE gender_type AS ENUM ('FEMALE', 'MALE');
+    END IF;
+END $$;
+CREATE TABLE IF NOT EXISTS "code-test".filtered_ecgs (
     id     bigint      NOT NULL,
     di     numeric[],
     dii    numeric[],
@@ -36,13 +46,15 @@ CREATE TABLE "code-test".filtered_ecgs (
     v4     numeric[],
     v5     numeric[],
     v6     numeric[],
+
     PRIMARY KEY (id)
 );
 
-CREATE TABLE "code-test".dnn_annotations(
+CREATE TABLE IF NOT EXISTS "code-test".dnn_annotations(
     id int8 NOT NULL,
     "1dAVb" int2 NOT NULL,
     rbbb int2 NOT NULL,
+
     lbbb int2 NOT NULL,
     sb int2 NOT NULL,
     af int2 NOT NULL,
@@ -50,7 +62,7 @@ CREATE TABLE "code-test".dnn_annotations(
     PRIMARY KEY (id)
 );
 
-CREATE TABLE "code-test".prediction_certanties (
+CREATE TABLE IF NOT EXISTS "code-test".prediction_certanties (
     id int8 NOT NULL,
     "1dAVb" numeric NOT NULL,
     rbbb numeric NOT NULL,
@@ -61,7 +73,7 @@ CREATE TABLE "code-test".prediction_certanties (
     PRIMARY KEY (id)
 );
 
-CREATE TABLE "code-test".gold_lable(
+CREATE TABLE IF NOT EXISTS "code-test".gold_lable(
     id int8 NOT NULL,
     "1dAVb" int2 NOT NULL,
     rbbb int2 NOT NULL,
@@ -72,41 +84,40 @@ CREATE TABLE "code-test".gold_lable(
     PRIMARY KEY (id)
 );
 
-CREATE TABLE "code-test".aed_model_embeddings (
-  id int8 PRIMARY KEY, 
+CREATE TABLE IF NOT EXISTS"code-test".aed_model_embeddings (
   embedding _numeric
 );
 
-CREATE TABLE "code-test".fm_model_embeddings (
-  id int8 PRIMARY KEY, 
+CREATE TABLE IF NOT EXISTS "code-test".fm_model_embeddings (
+  id int8 PRIMARY KEY,
   embedding _numeric
 );
 
 -- PTB-XL DATA
-CREATE SCHEMA "ptb-xl";
+CREATE SCHEMA IF NOT EXISTS "ptb-xl";
 
-CREATE TABLE "ptb-xl".patient_data AS
+CREATE TABLE IF NOT EXISTS "ptb-xl".patient_data AS
 TABLE "code-test".patient_data
 WITH NO DATA;
 
-CREATE TABLE "ptb-xl".dnn_annotations AS
+CREATE TABLE IF NOT EXISTS "ptb-xl".dnn_annotations AS
 TABLE "code-test".dnn_annotations
 WITH NO DATA;
 
-CREATE TABLE "ptb-xl".prediction_certanties AS
+
+CREATE TABLE IF NOT EXISTS "ptb-xl".prediction_certanties AS
 TABLE "code-test".prediction_certanties
 WITH NO DATA;
 
-CREATE TABLE "ptb-xl".gold_lable AS
+CREATE TABLE IF NOT EXISTS "ptb-xl".gold_lable AS
 TABLE "code-test".gold_lable
 WITH NO DATA;
 
-CREATE TABLE "ptb-xl".AED_model_embeddings AS
+CREATE TABLE IF NOT EXISTS "ptb-xl".AED_model_embeddings AS
 TABLE "code-test".aed_model_embeddings
 WITH NO DATA;
 
 
-CREATE TABLE "ptb-xl".filtered_ecgs AS
+CREATE TABLE IF NOT EXISTS "ptb-xl".filtered_ecgs AS
 TABLE "code-test".filtered_ecgs
 WITH NO DATA;
-
