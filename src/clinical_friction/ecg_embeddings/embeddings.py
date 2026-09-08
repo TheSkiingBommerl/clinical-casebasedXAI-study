@@ -79,7 +79,7 @@ def flush_to_db(batch_ids: list[int], batch_embs: list[list[float]]):
     data = list(zip(batch_ids, batch_embs))
     query = """
     INSERT INTO "code-test".FM_model_embeddings (id, embedding)
-    VALUES %s;
+    VALUES %s
     ON CONFLICT (id) DO UPDATE SET embedding = EXCLUDED.embedding;
     """
     logger.debug(f"Flushing {len(data)} embeddings to database")

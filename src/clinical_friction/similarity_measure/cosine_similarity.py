@@ -1,9 +1,14 @@
 """
 Find most similar ECG signals using cosine similarity
 """
+
+from pathlib import Path
+from loguru import logger
 from clinical_friction.database.useful_queries import get_embeddings
+from tqdm import tqdm
 import numpy as np
 import csv
+
 
 # In domain embeddings
 results_folder = "emb_id"
@@ -45,17 +50,27 @@ def get_ref(patient_id, dataset, id_subset):
     return best_id
 
 
-if __name__ == '__main__':
-    # ids used for experiment 1 - produced by get_test_split.py
-    samples = [...]
-
-    embeddings = get_embeddings(db_table_name)
-
-    for sample in samples:
+def find_similar_embeddings(samples: list[int], dst_dir: Path):
+    embeddings = get_embeddings("FM_model_embeddings", dataset="code-test", ids=samples)
+    for sample in tqdm(samples):
         best_id, best_sim = get_similar_signals(embeddings, sample)
-        print(sample, best_id, best_sim)
 
-        with open(f"similarity_measure/results/{results_folder}/{sample}.csv", "w", newline="") as f:
+        with open(dst_dir / f"{sample}.csv", "w", newline="") as f:
             writer = csv.writer(f)
             results = (sample, best_id, best_sim)
             writer.writerow(results)
+
+#if __name__ == '__main__':
+#    # ids used for experiment 1 - produced by get_test_split.py
+#    samples = [...]#
+
+#    embeddings = get_embeddings("FM_model_embeddings", dataset="code-test", ids=samples)#
+
+#    for sample in samples:
+#        best_id, best_sim = get_similar_signals(embeddings, sample)
+#        print(sample, best_id, best_sim)#
+
+#        with open(f"similarity_measure/results/{results_folder}/{sample}.csv", "w", newline="") as f:
+#            writer = csv.writer(f)
+#            results = (sample, best_id, best_sim)
+#            writer.writerow(results)

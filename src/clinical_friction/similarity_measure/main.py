@@ -7,6 +7,8 @@ from clinical_friction.ecg_embeddings.create_mat import save_signals
 from clinical_friction.ecg_embeddings.embeddings import create_embeddings
 from clinical_friction.similarity_measure.get_test_split import get_test_split
 from clinical_friction.similarity_measure.DTW import process_all
+from clinical_friction.similarity_measure.cosine_similarity import find_similar_embeddings
+from clinical_friction.similarity_measure.create_parquets import build_save_table
 
 def run_embeddings(data_dir: Path, device: str, db_batch_size: int):
     data_dir = Path("data")
@@ -27,12 +29,13 @@ def run_embeddings(data_dir: Path, device: str, db_batch_size: int):
 
 
     hdf5_path = data_dir / "processed" / "code-test_filtered.hdf5"
-    dtw_path = data_dir / "processed" / "dtw-similarity"
-    dtw_path.mkdir(exist_ok=True)
+    simil_dir = data_dir / "processed" / "similarity"
+    dtw_dir = simil_dir / "dtw"
+    dtw_dir.mkdir(exist_ok=True, parents=True)
 
     samples = df_ecg_split["ids"].to_list()
     logger.info(f"Running DTW similarity on {len(samples)} samples")
-    process_all(samples, dtw_path, hdf5_path)
+    process_all(samples, dtw_dir, hdf5_path)
 
     logger.info("Converting ECG's to .mat files...")
     save_signals("code-test", signals_path)
@@ -44,6 +47,18 @@ def run_embeddings(data_dir: Path, device: str, db_batch_size: int):
         device=device,
         db_batch_size=db_batch_size
     )
+
+    fm_dir = simil_dir / "In_Population"
+    fm_dir.mkdir(exist_ok=True,)
+    tool_simil_dir = data_dir / "website" / "similarity_comparison"
+    tool_simil_dir.mkdir(exist_ok=True, parents=True)
+    logger.info(f"Finding FM-embedding similarity on {len(samples)} samples")
+    find_similar_embeddings(samples, fm_dir)
+
+    logger.info(f"Shuffling DTW - FM pairs for the similarity tool")
+    build_save_table(samples, simil_dir, tool_simil_dir)
+
+    logger.info("Done!")
 
 
 def main():
