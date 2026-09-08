@@ -229,9 +229,9 @@ def generate_tool_parquets(filtered_csv_path: Path, website_dir: Path):
     nr_exp_datasets = 8
     exp_ids = get_experiment_ids(dataset, valid_ids=valid_ids)
     assignments = generate_assignments(ids = exp_ids, arms = [0, 1, 2, 3], n_lists = nr_exp_datasets)
-    print("exp ids", len(exp_ids))
+
     valid_ids = list(set(valid_ids) - set(exp_ids))
-    print("valid ids", len(valid_ids))
+
 
     for idx, assignment in tqdm(enumerate(assignments), total=len(assignments)):
         dst = website_dir / str(idx)

@@ -2,7 +2,7 @@ import streamlit as st
 from components.study_arms import baseline, study_arm_1, study_arm_2, study_arm_3
 from components.diagnosis import diagnosis
 from components.flag_button import flag_button, load_flags
-from helpers.load_parquets import load_case
+from clinical_friction.helpers.load_parquets import load_case
 from components.sidebar import sidebar, init_sidebar_state
 from components.scroll_to_top import scroll_to_top
 from components.questionnaire import questionnaire, disable_questionnaire
@@ -73,7 +73,7 @@ if st.user.is_logged_in:
         privacy()
 
         st.header("Level of expertise")
-        
+
         st.markdown(
                 "<p style='font-size: 20px;'>What is your current position?</p>",
                 unsafe_allow_html=True,
@@ -91,7 +91,7 @@ if st.user.is_logged_in:
             }
         </style>
         """, unsafe_allow_html=True)
-        
+
 
         col1, _, col3 = st.columns([6, 1, 1])
 
@@ -100,7 +100,7 @@ if st.user.is_logged_in:
 
             consent_text = "I consent to the collection, use, and storage of data generated during this study, including my self-reported level of expertise, my responses to the signal comparison tasks, and, where applicable, screen recordings captured during the experiment. The findings derived from the collected data may be used in a master's thesis and in publications resulting from this research."
             agree = st.checkbox(f'{consent_text}')
-            
+
 
         with col3:
             st.markdown(
@@ -148,7 +148,7 @@ if st.user.is_logged_in:
             key = f"Patient {i+1}"
 
             patients[key] = i
-        
+
         patient_keys = list(patients.keys())
 
         if "patient_index" not in st.session_state:
@@ -219,7 +219,7 @@ if st.user.is_logged_in:
                         st.session_state.current_section = "questionnaire"
                         st.session_state.scroll_to_top = True
                         st.rerun()
-                    
+
         elif st.session_state.current_section == "questionnaire":
             all_filled, survey = questionnaire()
             disable = True
@@ -231,13 +231,13 @@ if st.user.is_logged_in:
                 if st.button("Submit", disabled=disable, use_container_width=True):
                     st.session_state.scroll_to_top = True
                     st.session_state.page = "submitted"
-                    
+
                     now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
                     data = {key: val["value"] for key, val in survey.data.items()}
                     data["time"] = now
                     df = pd.DataFrame([data])
                     df.to_csv(root / user / f"survey_data_{user}.csv", mode="a", header=not pd.io.common.file_exists(root / f"survey_data_{user}.csv"), index=False)
-                    
+
                     file_path = root / user / f"progress_{user}.csv"
                     with open(file_path, "w", newline="") as f:
                         writer = csv.writer(f)
@@ -253,6 +253,3 @@ if st.user.is_logged_in:
         st.success("Thank you! Your responses have been submitted.")
         if st.button("Log out"):
             st.logout()
-
-
-

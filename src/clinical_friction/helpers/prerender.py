@@ -6,9 +6,10 @@ import os
 import math
 import json
 import plotly.graph_objects as go
-from helpers.load_parquets import load_case
-
+from clinical_friction.helpers.load_parquets import load_case
+from pathlib import Path
 import plotly
+
 PLOTLY_JS_PATH = os.path.join(os.path.dirname(plotly.__file__), "package_data", "plotly.min.js")
 with open(PLOTLY_JS_PATH, "r", encoding="utf-8") as f:
     PLOTLY_JS = f.read()
@@ -200,7 +201,7 @@ document.addEventListener('DOMContentLoaded', function() {{
 
 # ── Main prerender logic ──────────────────────────────────────────────────────
 
-def prerender_ecg(ecg: list,  title: str, data_id, patient_idx, info) -> None:
+def prerender_ecg(ecg: list,  title: str, data_id, patient_idx, info, dst: Path) -> None:
     """
     Render all 12 leads of one ECG to HTML files.
 
@@ -209,32 +210,35 @@ def prerender_ecg(ecg: list,  title: str, data_id, patient_idx, info) -> None:
         ecg_id:  unique identifier used as the folder name, e.g. "patient_007"
         title:   chart title shown top-left, e.g. "Patient ECG"
     """
-
-    out = f"{data_id}/{patient_idx}/{info}"
-    out_dir = os.path.join(CACHE_DIR, out)
-    os.makedirs(out_dir, exist_ok=True)
+    out = dst / str(data_id) / str(patient_idx) / str(info)
+    out.mkdir(exist_ok=True, parents=True)
+    #out = f"{data_id}/{patient_idx}/{info}"
+    #out_dir = os.path.join(CACHE_DIR, out)
+   # os.makedirs(out_dir, exist_ok=True)
 
     for i, (lead, name) in enumerate(zip(ecg, LEAD_NAMES)):
         fig_json = render_figure_json(tuple(lead), name, title)
         html     = make_chart_html(fig_json, f"lead_{i}")
-        path     = os.path.join(out_dir , f"lead_{i}.html")
+        path     = out / f"lead_{i}.html"
         with open(path, "w", encoding="utf-8") as f:
             f.write(html)
-        print(f"  wrote {path}")
+        #print(f"  wrote {path}")
 
 
-def prerender_all(ecg_patient: list, ecg_reference: list| None, data_id, patient_idx) -> None:
+def prerender_all(ecg_patient: list, ecg_reference: list| None, data_id, patient_idx, dst: Path) -> None:
     """
     Pre-bake both the patient ECG and the reference ECG.
     Call this whenever your data changes.
     """
-    print("Pre-rendering patient ECG…")
-    prerender_ecg(ecg_patient,   title="Patient ECG", data_id= data_id, patient_idx=patient_idx,info= "patient")
+    #print("Pre-rendering patient ECG…")
+    prerender_ecg(ecg_patient,   title="Patient ECG", data_id= data_id, patient_idx=patient_idx,info= "patient", dst=dst)
 
-    print("Pre-rendering reference ECG…")
+    #print("Pre-rendering reference ECG…")
     if ecg_reference is not None:
-        prerender_ecg(ecg_reference, title="Similar ECG", data_id=data_id, patient_idx=patient_idx, info="reference")
-    print("Done — all files written to", CACHE_DIR)
+        prerender_ecg(ecg_reference, title="Similar ECG", data_id=data_id, patient_idx=patient_idx, info="reference", dst=dst)
+    #print("Done — all files written to", dst)
+
+
 
 
 if __name__ == "__main__":

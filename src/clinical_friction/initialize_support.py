@@ -1,3 +1,4 @@
+from tqdm import tqdm
 import os
 from pathlib import Path
 from argparse import ArgumentParser
@@ -6,7 +7,11 @@ from clinical_friction.automatic_ecg_diagnosis.predict import out_pop_prediction
 from clinical_friction.automatic_ecg_diagnosis.certainty import in_pop_certainty, out_pop_certainty
 from clinical_friction.automatic_ecg_diagnosis.prediction_to_diagnosis import add_ptbxl_dnn
 from clinical_friction.helpers.parquets import generate_tool_parquets
+from clinical_friction.helpers.prerender import prerender_all
+from clinical_friction.helpers.load_parquets import load_case
 from clinical_friction.automatic_ecg_diagnosis.create_embeddings import create_ptb_emb
+
+
 def main():
     argparser = ArgumentParser()
     argparser.add_argument('--dir', type=Path, help="Set a custom root data folder", default=Path("data"))
@@ -31,25 +36,25 @@ def main():
             )
 
     logger.info("Computing uncertainty for code-test and PTB-XL...")
-    #in_pop_certainty(
-    #    hdf5_path=code_test_signals,
-    #    model_path=model_path,
-    #    pred_rep=args.rollouts
-    #)
+    in_pop_certainty(
+        hdf5_path=code_test_signals,
+        model_path=model_path,
+        pred_rep=args.rollouts
+    )
 
-    #out_pop_certainty(
-    #    hdf5_path=ptbxl_signals,
-    #    model_path=model_path,
-    #    pred_rep=args.rollouts
-    #)
+    out_pop_certainty(
+        hdf5_path=ptbxl_signals,
+        model_path=model_path,
+        pred_rep=args.rollouts
+    )
 
-    #logger.info("Predicting model diagnoses on PTB-XL...")
-    #out_pop_prediction(
-    #    hdf5_path=hdf5_signals_path,
-    #    model_path=model_path,
-    #    dst_dir=support_dir,
-    #    filename="ptb_predictions"
-    #)
+    logger.info("Predicting model diagnoses on PTB-XL...")
+    out_pop_prediction(
+        hdf5_path=ptbxl_signals,
+        model_path=model_path,
+        dst_dir=support_dir,
+        filename="ptb_predictions"
+    )
 
     add_ptbxl_dnn(support_dir / "ptb_predictions.csv")
 
@@ -59,8 +64,20 @@ def main():
     tool_dir = Path(args.dir) / "website" / "clinical_decision_support"
     tool_dir.mkdir(exist_ok=True)
 
+    # Generate parquets that the tool loads for each participant - patient
     logger.info("Generating data files for clinical decision tool...")
     generate_tool_parquets(filtered_csv_path, tool_dir)
+
+    # Pre-render plotly HTML plots for faster loading
+    logger.info("Pre-rendering plotly plots for 8 datasets...")
+    plot_dir = tool_dir / "cached_plots"
+    plot_dir.mkdir(exist_ok=True)
+
+    for dataset in range(8):
+        bardesc = f"Rendering dataset {dataset}"
+        for case in tqdm(range(20), total=20, desc=bardesc):
+            data = load_case(tool_dir, dataset, case, prerender = True)
+            prerender_all(data["ecg"], data["ecg_ref"], dataset, case, plot_dir)
 
 if __name__ == "__main__":
     main()

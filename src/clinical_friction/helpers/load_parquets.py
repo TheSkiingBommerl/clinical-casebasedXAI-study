@@ -3,6 +3,7 @@ import numpy as np
 import io
 import pickle
 import streamlit as st
+from pathlib import Path
 
 def bytes_to_ecg(b: bytes) -> np.ndarray:
     """
@@ -16,13 +17,14 @@ def bytes_to_list(b: bytes) -> list:
     """
     return pickle.loads(b)
 
-def load_case(user, index, prerender = False):
+def load_case(src: Path, user, index, prerender = False):
     if prerender:
         dataset = user
     else:
         dataset = user.split("_")[-1]
-    
-    df = pd.read_parquet(f"data/{dataset}/{index}.parquet", engine="pyarrow")
+
+    parquet_path = src / str(dataset) / f"{index}.parquet"
+    df = pd.read_parquet(parquet_path, engine="pyarrow")
     row = df.iloc[0]
 
     result = {
@@ -39,6 +41,3 @@ def load_case(user, index, prerender = False):
     }
 
     return result
-
-
-
