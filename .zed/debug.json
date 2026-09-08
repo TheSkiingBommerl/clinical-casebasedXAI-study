@@ -9,7 +9,7 @@
     "multiprocess": true,
     "justMyCode": false,
     "console": "integratedTerminal",
-    "program": "src/clinical_friction/database/initialize.py",
+    "program": "src/clinical_friction/initialize.py",
     "args": []
   },
   {

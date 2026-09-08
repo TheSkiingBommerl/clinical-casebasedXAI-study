@@ -88,6 +88,7 @@ CREATE TABLE IF NOT EXISTS "code-test".gold_lable(
 );
 
 CREATE TABLE IF NOT EXISTS"code-test".aed_model_embeddings (
+ id int8 PRIMARY KEY,
   embedding _numeric
 );
 
@@ -116,7 +117,7 @@ CREATE TABLE IF NOT EXISTS "ptb-xl".gold_lable AS
 TABLE "code-test".gold_lable
 WITH NO DATA;
 
-CREATE TABLE IF NOT EXISTS "ptb-xl".AED_model_embeddings AS
+CREATE TABLE IF NOT EXISTS "ptb-xl".aed_model_embeddings AS
 TABLE "code-test".aed_model_embeddings
 WITH NO DATA;
 
@@ -131,3 +132,4 @@ ALTER TABLE "ptb-xl".patient_data ADD PRIMARY KEY (id);
 ALTER TABLE "ptb-xl".dnn_annotations ADD PRIMARY KEY (id);
 ALTER TABLE "ptb-xl".prediction_certanties ADD PRIMARY KEY (id);
 ALTER TABLE "ptb-xl".gold_lable ADD PRIMARY KEY (id);
+ALTER TABLE "ptb-xl".aed_model_embeddings ADD PRIMARY KEY (id);

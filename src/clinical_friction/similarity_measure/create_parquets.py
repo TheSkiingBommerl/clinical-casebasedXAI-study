@@ -7,16 +7,7 @@ from clinical_friction.database.useful_queries import get_ecg_signals
 from clinical_friction.helpers.remove_padding import remove_zero_padding
 
 LEADS = ["DI", "DII", "DIII", "AVR", "AVL", "AVF", "V1", "V2", "V3", "V4", "V5", "V6"]
-#MEASURES = ["DTW", "In_Population", "Out_Population"]
-MEASURES = ["dtw", "In_Population"]
-RESULT_PATHS = [
-    "similarity_measure/results/dtw",
-    "similarity_measure/results/In_Population",
-    "similarity_measure/results/Out_Population",
-]
-# ids used for experiment 1 - produced by get_test_split.py
-#SAMPLE_IDS = [...]
-OUTPUT_DIR = "website/similarity_comparison/data"
+MEASURES = ["DTW", "In_Population", "Out_Population"]
 
 def load_best_match(path, query_id):
     df = pd.read_csv(path / f"{query_id}.csv", header=None)

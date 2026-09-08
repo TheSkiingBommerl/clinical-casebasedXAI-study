@@ -48,5 +48,5 @@ packages = ["src/clinical_friction"]
 allow-direct-references = true
 
 [project.scripts]
-clinical-friction-init-db = "clinical_friction.database.initialize:initialize_database"
+clinical-friction-init-db = "clinical_friction.initialize:initialize_database"
 clinical-friction-prepare-similarity = "clinical_friction.similarity_measure.main:main"

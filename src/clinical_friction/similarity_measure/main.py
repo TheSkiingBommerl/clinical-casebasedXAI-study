@@ -9,14 +9,17 @@ from clinical_friction.similarity_measure.get_test_split import get_test_split
 from clinical_friction.similarity_measure.DTW import process_all
 from clinical_friction.similarity_measure.cosine_similarity import find_similar_embeddings
 from clinical_friction.similarity_measure.create_parquets import build_save_table
+from clinical_friction.automatic_ecg_diagnosis.create_embeddings import create_code15_emb
 
 def run_embeddings(data_dir: Path, device: str, db_batch_size: int):
     data_dir = Path("data")
 
-    ckpt_path = data_dir / "raw" / "ecg-model" / "mimic_iv_ecg_finetuned.pt"
+    ecg_fm_path = data_dir / "raw" / "ecg-model" / "mimic_iv_ecg_finetuned.pt"
+    ecg_auto_path = data_dir / "raw" / "ecg-autodiag-model" / "model" / "model.hdf5"
 
-    if not ckpt_path.exists:
-        logger.error(f"Model checkpoint {ckpt_path} Doesn't exist. Did you run clinical-friction-init-db?")
+    for mod_path in [ecg_fm_path, ecg_auto_path]:
+        if not mod_path.exists:
+            logger.error(f"Model checkpoint {mod_path} Doesn't exist. Did you run clinical-friction-init-db?")
 
     signals_path = data_dir / "processed" / "ecg-mat"
     if not signals_path.parent.exists:
@@ -40,22 +43,31 @@ def run_embeddings(data_dir: Path, device: str, db_batch_size: int):
     logger.info("Converting ECG's to .mat files...")
     save_signals("code-test", signals_path)
 
-    logger.info("Running embedding model...")
+    logger.info("Running ECG-FM embedding model...")
     create_embeddings(
         data_path=signals_path,
-        ckpt_path=ckpt_path,
+        ckpt_path=ecg_fm_path,
         device=device,
         db_batch_size=db_batch_size
     )
 
     fm_dir = simil_dir / "In_Population"
-    fm_dir.mkdir(exist_ok=True,)
-    tool_simil_dir = data_dir / "website" / "similarity_comparison"
-    tool_simil_dir.mkdir(exist_ok=True, parents=True)
+    fm_dir.mkdir(exist_ok=True)
     logger.info(f"Finding FM-embedding similarity on {len(samples)} samples")
-    find_similar_embeddings(samples, fm_dir)
+    find_similar_embeddings(samples, "fm_model_embeddings", fm_dir)
+
+
+    logger.info("Running ecg-automatic-diagnosis embedding model...")
+    create_code15_emb(hdf5_path, ecg_auto_path)
+
+    ecg_auto_dir = simil_dir / "Out_Population"
+    ecg_auto_dir.mkdir(exist_ok=True)
+    logger.info(f"Finding AEM-embedding similarity on {len(samples)} samples")
+    find_similar_embeddings(samples, "aed_model_embeddings", fm_dir)
 
     logger.info(f"Shuffling DTW - FM pairs for the similarity tool")
+    tool_simil_dir = data_dir / "website" / "similarity_comparison"
+    tool_simil_dir.mkdir(exist_ok=True, parents=True)
     build_save_table(samples, simil_dir, tool_simil_dir)
 
     logger.info("Done!")

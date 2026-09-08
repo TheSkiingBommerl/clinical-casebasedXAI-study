@@ -4,14 +4,16 @@ Uses the model: https://github.com/antonior92/automatic-ecg-diagnosis to make pr
 This file was based on: https://github.com/antonior92/automatic-ecg-diagnosis/blob/master/predict.py
 """
 
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import warnings
 warnings.filterwarnings("ignore")
 from tensorflow.keras.models import load_model
 from tensorflow.keras.optimizers import Adam
-from datasets import ECGSequence
-from helpers.h5py_handling import load_h5py
+from clinical_friction.helpers.h5py_handling import load_h5py
+
+from clinical_friction.automatic_ecg_diagnosis.datasets import ECGSequence
 # import h5py
 
 # def load_h5py(path_to_hdf5):
@@ -29,36 +31,29 @@ def predict(input_path, data_name):
     model.compile(loss='binary_crossentropy', optimizer=Adam())
     return model.predict(seq,  verbose=1)
 
-def in_pop_prediction():
-    input_path = "data/ecg_tracings.hdf5"
-    data_name = "tracings"
-    output_path = "dnn_predicts/model"
+def in_pop_prediction(hdf5_path: Path, filename: str, dst_dir: Path):
 
-    y_score = predict(input_path, data_name)
+    y_score = predict(hdf5_path, "signals")
 
-    np.save(f"{output_path}.npy", y_score)
+    np.save(dst_dir / f"{filename}.npy", y_score)
 
 
-def out_pop_prediction():
-    input_path = "ptb.hdf5"
+def out_pop_prediction(hdf5_path: Path,dst_dir: Path,  filename: str="ptb_predictions"):
     data_name = "signals"
-    output_path = "ptb_predictions"
 
-    ids, _ = load_h5py(input_path)
+    ids, _ = load_h5py(hdf5_path)
 
-    y_score = predict(input_path, data_name)
-   
+    y_score = predict(hdf5_path, data_name)
+
     df = pd.DataFrame({
         "id": ids,
         "y_score": list(y_score)
     })
 
-    df.to_csv(f"{output_path}.csv", index=False)
+    df.to_csv(dst_dir / f"{filename}.csv", index=False)
 
-    
+
 if __name__ == '__main__':
 
     out_pop_prediction()
     print("Output predictions saved")
-
-    
