@@ -37,7 +37,7 @@ def get_similar_signals(embeddings, signal_id):
     return best_id, best_sim
 
 def get_ref(patient_id, dataset, id_subset):
-    embeddings = get_embeddings(tablename="AED_model_embeddings", dataset=dataset, ids=id_subset)
+    embeddings = get_embeddings(tablename="aed_model_embeddings", dataset=dataset, ids=id_subset)
     best_id, _ = get_similar_signals(embeddings, patient_id)
     return best_id
 

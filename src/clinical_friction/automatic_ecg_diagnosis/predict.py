@@ -25,9 +25,9 @@ from clinical_friction.automatic_ecg_diagnosis.datasets import ECGSequence
 #     return ids, data
 
 
-def predict(input_path, data_name):
+def predict(input_path, model_path: Path, data_name: str):
     seq = ECGSequence(input_path, data_name, batch_size=1)
-    model = load_model("model/model.hdf5", compile=False)
+    model = load_model(model_path, compile=False)
     model.compile(loss='binary_crossentropy', optimizer=Adam())
     return model.predict(seq,  verbose=1)
 
@@ -38,12 +38,12 @@ def in_pop_prediction(hdf5_path: Path, filename: str, dst_dir: Path):
     np.save(dst_dir / f"{filename}.npy", y_score)
 
 
-def out_pop_prediction(hdf5_path: Path,dst_dir: Path,  filename: str="ptb_predictions"):
+def out_pop_prediction(hdf5_path: Path, model_path: Path, dst_dir: Path,  filename: str="ptb_predictions"):
     data_name = "signals"
 
     ids, _ = load_h5py(hdf5_path)
 
-    y_score = predict(hdf5_path, data_name)
+    y_score = predict(hdf5_path, model_path, data_name)
 
     df = pd.DataFrame({
         "id": ids,

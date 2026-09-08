@@ -237,12 +237,10 @@ def prerender_all(ecg_patient: list, ecg_reference: list| None, data_id, patient
     print("Done — all files written to", CACHE_DIR)
 
 
-# ── Entry point (replace the dummy data with your real loader) ────────────────
-
 if __name__ == "__main__":
-    
+
     for dataset in range(8):
         for case in range(20):
             data = load_case(dataset, case, prerender = True)
-            
+
             prerender_all(data["ecg"], data["ecg_ref"], dataset, case)

@@ -51,12 +51,14 @@ def create_code15_emb(tracings_hdf5: Path, model_hdf5: Path):
     store_data(query, rows)
 
 
-def create_ptb_emb():
+def create_ptb_emb(tracings_hdf5: Path, model_hdf5: Path):
+    seq = ECGSequence(tracings_hdf5, "signals", batch_size=1)
+    model = load_model(model_hdf5, compile=False)
 
-    ids, _ = load_h5py("ptb.hdf5")
+    ids, _ = load_h5py(tracings_hdf5)
 
-    seq = ECGSequence("ptb.hdf5", "signals", batch_size=1)
-    model = load_model("model/model.hdf5", compile=False)
+    seq = ECGSequence(tracings_hdf5, "signals", batch_size=1)
+    model = load_model(model_hdf5, compile=False)
 
     embedding_model = Model(
         inputs=model.input,
