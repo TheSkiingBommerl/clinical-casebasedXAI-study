@@ -2,7 +2,9 @@
 Find most similar ECG signals using DTW
 Article explaining DTW: https://medium.com/walmartglobaltech/time-series-similarity-using-dynamic-time-warping-explained-9d09119e48ec
 """
-
+from pathlib import Path
+from loguru import logger
+import pandas as pd
 import time
 import os
 from pathlib import Path
@@ -11,6 +13,7 @@ import numpy as np
 from tslearn.metrics import dtw_path
 import time
 from clinical_friction.helpers.h5py_handling import load_h5py
+from tqdm import tqdm
 
 RESULTS = "similarity_measure/results/dtw"
 
@@ -26,8 +29,6 @@ def get_most_similar(ids, data, id):
     filtered_ids = ids[mask]
 
     results = []
-
-    print("Started Loop")
 
     for idx, signal in enumerate(filtered_data):
 
@@ -47,33 +48,20 @@ def get_most_similar(ids, data, id):
 
     return best_id, best_score, results
 
-def process_sample(ids, data, sample):
+def write_sample(sample, best_id,  best_score, dst_dir: Path):
 
-    best_id, best_score, _ = get_most_similar(ids, data, sample)
-
-    with open(os.path.join(RESULTS, f"{sample}.csv"), "w", newline="") as f:
+    with open(dst_dir / f"{sample}.csv", "w", newline="") as f:
             writer = csv.writer(f)
             results = (sample, best_id, best_score)
             writer.writerow(results)
-    print(f"Sample {sample} is done")
-    return (sample, best_id, best_score)
 
 
-if __name__ == '__main__':
+def process_all(samples: list[int], dst_dir: Path, hdf5_path: Path):
+    """Find most similar samples to an ECG ID with Dynamic Time Warping"""
+    dst_dir.mkdir(exist_ok=True)
+    ids, data = load_h5py(hdf5_path)
 
-    results_dir = Path(RESULTS)
-    results_dir.mkdir(exist_ok=True)
-    path_to_hdf5 = "signal_filtering/filtered_signals.hdf5"
-    ids, data = load_h5py(path_to_hdf5)
-
-    # ids used for experiment 1 - produced by get_test_split.py
-    # 10 Normal, 10 1dAVb and 10 LBBB
-    samples = [...]
-    print("Start")
-
-    for sample in samples:
-        print("Sample: ", sample)
-        tick = time.time()
-        process_sample(ids, data, sample)
-        tock = time.time()
-        print(f"Took {round((tock - tick) / 60, ndigits=1)} minutes")
+    logger.debug(f"Applying DTW to {len(samples)} samples...")
+    for sample in tqdm(samples):
+        best_id, best_score, _ = get_most_similar(ids, data, sample)
+        write_sample(sample, best_id, best_score, dst_dir)

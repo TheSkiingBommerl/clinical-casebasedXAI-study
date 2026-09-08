@@ -62,11 +62,12 @@ def load_records(ptbxl_entries_csv: Path, ptbxl_raw_dir: Path):
         )
 
         signal = rec.e_p_signal
-
+        age = df.iloc[i]["age"]
+        age = int(age) if not pd.isna(age) else 0 # TODO remove
         row = [(
             int(df.iloc[i]["ecg_id"]),
             df.iloc[i]["sex"],
-            int(df.iloc[i]["age"]),
+            age,
             signal[0].tolist(),
             signal[1].tolist(),
             signal[2].tolist(),

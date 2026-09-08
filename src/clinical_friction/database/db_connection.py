@@ -44,6 +44,7 @@ def store_data(query, data):
     conn = db_conn()
     cur = conn.cursor()
 
+
     execute_values(cur, query, data)
 
     conn.commit()

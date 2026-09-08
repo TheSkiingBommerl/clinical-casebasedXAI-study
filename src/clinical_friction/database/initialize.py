@@ -110,7 +110,7 @@ def initialize_database():
         download_zip(CODE_URL, code_dir)
 
     # Download and extract PTB-XL dataset
-    if os.path.exists(ptbxl_dir / "ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.3"):
+    if os.path.exists(ptbxl_dir / "ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1"):
         logger.info(f"PTB-XL already found in {ptbxl_dir}")
     else:
         logger.info(f"Downloading PTB-XL from {PTBXL_URL} (slow)")
@@ -150,7 +150,7 @@ def initialize_database():
 
     # Select relevant ECG signals and save to .csv
     logger.info("Extracting relevant PTB-XL signals...")
-    ptbxl_raw = ptbxl_dir / "ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.3"
+    ptbxl_raw = ptbxl_dir / "ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1"
 
     ptbxl_csv = processed_dir / "filtered_ecg_experiment_2.csv"
     ptbxl_entries = filter_ptbxl_entries(ptbxl_raw / "ptbxl_database.csv")
@@ -164,6 +164,7 @@ def initialize_database():
     # Filter PTB-XL signals
     filter_from_db("ptb-xl", processed_dir)
 
+    logger.info("Done! All data is added to the database")
 
 
 

@@ -7,27 +7,33 @@ from clinical_friction.database.useful_queries import get_diagnostics
 import pandas as pd
 
 
-query = """
-    SELECT id
-    FROM "code-test".gold_lable
-    """
+SEED = 42
 
-rows = extract_data(query)
-ids = [row[0] for row in rows]
+def get_test_split() -> pd.DataFrame:
+    """Randomly select ECG id's from code-test"""
 
-diagnostic = get_diagnostics()
+    query = """
+        SELECT id
+        FROM "code-test".gold_lable
+        """
 
-norm_df = diagnostic[diagnostic["diagnostic"].apply(lambda x: x == ["NO_ABN"])]
-_1dAVb_df = diagnostic[diagnostic["diagnostic"].apply(lambda x: x == ["1dAVb"])]
-lbbb_df = diagnostic[diagnostic["diagnostic"].apply(lambda x: x == ["LBBB"])]
+    rows = extract_data(query)
+    ids = [row[0] for row in rows]
 
-norm_df = norm_df.sample(n=10, random_state=42)
-_1dAVb_df = _1dAVb_df.sample(n=10, random_state=42)
-lbbb_df = lbbb_df.sample(n=11, random_state=42)
+    diagnostic = get_diagnostics()
 
-df = pd.concat(
-    [norm_df["id"], _1dAVb_df["id"], lbbb_df["id"]],
-    ignore_index=True
-).to_frame(name="ids")
+    norm_df = diagnostic[diagnostic["diagnostic"].apply(lambda x: x == ["NO_ABN"])]
+    _1dAVb_df = diagnostic[diagnostic["diagnostic"].apply(lambda x: x == ["1dAVb"])]
+    lbbb_df = diagnostic[diagnostic["diagnostic"].apply(lambda x: x == ["LBBB"])]
 
-df.to_csv("similarity_measure/results/ids_experiment_1.csv", index=False)
+    norm_df = norm_df.sample(n=10, random_state=SEED)
+    _1dAVb_df = _1dAVb_df.sample(n=10, random_state=SEED)
+    lbbb_df = lbbb_df.sample(n=11, random_state=SEED)
+
+    df = pd.concat(
+        [norm_df["id"], _1dAVb_df["id"], lbbb_df["id"]],
+        ignore_index=True
+    ).to_frame(name="ids")
+    return df
+
+    #df.to_csv("similarity_measure/results/ids_experiment_1.csv", index=False)
