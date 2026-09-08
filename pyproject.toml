@@ -30,6 +30,7 @@ dependencies = [
     "tslearn>=0.9.0",
     "huggingface-hub>=1.30.0",
     "psycopg2-binary>=2.9.12",
+    "tensorflow>=2.20.0",
 ]
 
 [build-system]

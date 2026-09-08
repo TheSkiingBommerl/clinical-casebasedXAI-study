@@ -28,6 +28,7 @@ from clinical_friction.database.transform_and_load.ptb.initial_load import (
 
 CODE_URL = "https://zenodo.org/records/3765780/files/data.zip?download=1"
 PTBXL_URL = "https://physionet.org/content/ptb-xl/get-zip/1.0.3/"
+AUTO_DIAG_URL = "https://zenodo.org/records/3765717/files/model.zip?download=1"
 
 def download_zip(url: str, dst: Path):
     """Download a zipped dataset and extract"""
@@ -100,7 +101,8 @@ def initialize_database():
 
     code_dir = data_dir / "raw" / "code-test"
     ptbxl_dir = data_dir / "raw"/ "ptbxl"
-    model_dir = data_dir / "raw" / "ecg-model"
+    ecgfm_dir = data_dir / "raw" / "ecg-model"
+    ecgauto_dir = data_dir / "raw" / "ecg-autodiag-model"
 
     # Download and extract code dataset
     if os.path.exists(code_dir / "data"):
@@ -116,15 +118,22 @@ def initialize_database():
         logger.info(f"Downloading PTB-XL from {PTBXL_URL} (slow)")
         download_zip(PTBXL_URL, ptbxl_dir)
 
-    if os.path.exists(model_dir / "mimic_iv_ecg_finetuned.pt"):
-        logger.info(f"finetuned model checkpoint already found in {model_dir}")
+    if os.path.exists(ecgfm_dir / "mimic_iv_ecg_finetuned.pt"):
+        logger.info(f"finetuned model checkpoint already found in {ecgfm_dir}")
     else:
         logger.info(f"Downloading ECG model from HuggingFace")
         hf_hub_download(
             repo_id="wanglab/ecg-fm",
             filename="mimic_iv_ecg_finetuned.pt",
-            local_dir=model_dir
+            local_dir=ecgfm_dir
         )
+
+    if list(ecgauto_dir.rglob("*model.hdf5")):
+        logger.info(f"ecg-autodiagnosis checkpoint already found in {ecgauto_dir}")
+    else:
+        logger.info(f"Downloading ECG-autodiag model from {AUTO_DIAG_URL}")
+        download_zip(AUTO_DIAG_URL, ecgauto_dir)
+
     # Create code-test tables
     logger.info(f"Creating code-test tables...")
     create_tables()
