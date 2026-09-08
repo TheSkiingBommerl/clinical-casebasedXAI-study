@@ -1,25 +1,24 @@
 """
 Create hdf5 file, which is needed to make predictions with the model: https://github.com/antonior92/automatic-ecg-diagnosis
 """
-
+from typing import Literal
+from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy.signal import resample_poly
+from loguru import logger
 
 from clinical_friction.database.useful_queries import get_ecg_signals
 from clinical_friction.helpers.h5py_handling import write_h5py
 
 
-def convert_signals():
+def convert_signals(dataset: Literal["ptb-xl", "code-test"], dst: Path):
     """
     Convert signals from filtered PTB-XL dataset to fit requirements of automatic-ecg-diagnosis model and save as hdf5 file
     """
 
-    df = pd.read_csv("database/transform_and_load/ptb/datasets/filtered_ecg_experiment_2.csv")
-    ids = df["ecg_id"].tolist()
-
-    df = get_ecg_signals(ids, "ptb-xl")
-
+    df = get_ecg_signals(dataset=dataset, filtered=True)
+    ids = df["id"].to_list()
     signals = df["signal"]
     signals = np.stack(signals.to_numpy())
 
@@ -41,7 +40,5 @@ def convert_signals():
     # model expects shape: (nr. of signals, nr. of datapoints = 4096, nr of leads = 12)
     x_padded = np.transpose(x_padded, (0, 2, 1))
 
-    write_h5py("database/transform_and_load/ptb/datasets/ptb", x_padded, ids)
-
-
-convert_signals()
+    filepath = dst / f"{dataset}_filtered"
+    write_h5py(filepath, x_padded, ids)

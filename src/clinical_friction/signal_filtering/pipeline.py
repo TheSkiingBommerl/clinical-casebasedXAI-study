@@ -9,6 +9,9 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import math
 
+FREQ_PTB_XL = 50
+FREQ_CODE_TEST = 60
+
 def render_figures_overlay(fs, leads: list, names: list, cols: int = 2):
     """
     This function was created by Sonnet 4.6
@@ -94,18 +97,16 @@ def render_figures_overlay(fs, leads: list, names: list, cols: int = 2):
     fig.update_yaxes(showgrid=True, gridcolor="#1f2937", zeroline=False, title_text="Amplitude (mV)")
     return fig
 
-def filter_pipeline(signal):
-
+def filter_pipeline(signal, frequency=FREQ_PTB_XL):
+    """Remove powerline interference at a specified frequency"""
     # remove baseline wander
     signal = butterworth_high(signal)
 
     # remove high-frequency noise
     signal = butterworth_low(signal, 150)
 
-    # remove powerline inference at 50 Hz (for PTB-XL)
-    signal = notch(signal, 50)
-    # remove powerline inference at 60 Hz (for Code-test)
-    #signal = notch(signal, 60)
+    # remove powerline inference
+    signal = notch(signal, frequency)
 
     return signal
 

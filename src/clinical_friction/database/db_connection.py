@@ -6,8 +6,8 @@ from psycopg2.extras import execute_values
 from loguru import logger
 from psycopg2.extensions import connection
 
-env_path = Path(__file__).resolve().parents[1] / ".env"
-load_dotenv(dotenv_path=env_path)
+
+load_dotenv()
 #print(env_path)
 
 DB_NAME = os.getenv("DB_NAME")
@@ -20,11 +20,12 @@ DB_PORT = os.getenv("DB_PORT")
 def close_exception(err: BaseException):
     """Close the db connection if an exception occurs"""
     if isinstance(err, psycopg2.Error):
-        cur = err.cursor
-        conn = cur.connection
-        cur.close()
-        conn.close()
-        logger.warning("Closed database connection")
+        if err.cursor is not None:
+            cur = err.cursor
+            conn = cur.connection
+            cur.close()
+            conn.close()
+            logger.warning("Closed database connection")
 
 @logger.catch(reraise=True, onerror=close_exception)
 def db_conn() -> connection:

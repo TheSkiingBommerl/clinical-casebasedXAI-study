@@ -5,10 +5,13 @@ BEGIN
     END IF;
 END $$;
 
--- Code-test Data
-CREATE SCHEMA IF NOT EXISTS "code-test";
+DROP SCHEMA IF EXISTS "code-test" CASCADE;
+DROP SCHEMA IF EXISTS "ptb-xl" CASCADE;
 
-CREATE TABLE IF NOT EXISTS "code-test".patient_data (
+
+CREATE SCHEMA "code-test";
+
+CREATE TABLE "code-test".patient_data (
     id     bigint      NOT NULL,
     gender gender_type NOT NULL,
     age    integer     NOT NULL,
@@ -121,3 +124,10 @@ WITH NO DATA;
 CREATE TABLE IF NOT EXISTS "ptb-xl".filtered_ecgs AS
 TABLE "code-test".filtered_ecgs
 WITH NO DATA;
+
+-- Set constraints
+ALTER TABLE "ptb-xl".filtered_ecgs ADD PRIMARY KEY (id);
+ALTER TABLE "ptb-xl".patient_data ADD PRIMARY KEY (id);
+ALTER TABLE "ptb-xl".dnn_annotations ADD PRIMARY KEY (id);
+ALTER TABLE "ptb-xl".prediction_certanties ADD PRIMARY KEY (id);
+ALTER TABLE "ptb-xl".gold_lable ADD PRIMARY KEY (id);

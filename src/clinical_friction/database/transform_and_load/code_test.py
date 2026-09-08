@@ -16,15 +16,6 @@ from tqdm import tqdm
 import clinical_friction.database.db_connection as db
 
 
-def close_exception(err: BaseException):
-    """Close the db connection if an exception occurs"""
-    if isinstance(err, psycopg2.Error):
-        cur = err.cursor
-        conn = cur.connection
-        cur.close()
-        conn.close()
-
-
 @logger.catch(reraise=True, onerror=db.close_exception)
 def load_tracings(tracings: Path, attributes: Path):
     """Load ECG tracings from hdf5 file into database"""
@@ -79,10 +70,11 @@ def load_tracings(tracings: Path, attributes: Path):
     cur = conn.cursor()
     try:
         execute_values(cur, query, rows)
-        conn.commit()
+
     except psycopg2.errors.UniqueViolation:
         logger.warning(f"ECG tracings have already been loaded")
 
+    conn.commit()
     cur.close()
     conn.close()
 

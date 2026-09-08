@@ -1,0 +1,28 @@
+[
+  {
+    "adapter": "Debugpy",
+    "label": "initialize",
+    "request": "launch",
+    "python": ".venv/bin/python",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "subProcess": true,
+    "multiprocess": true,
+    "justMyCode": false,
+    "console": "integratedTerminal",
+    "program": "src/clinical_friction/database/initialize.py",
+    "args": []
+  },
+  {
+    "adapter": "Debugpy",
+    "label": "embeddings",
+    "request": "launch",
+    "python": ".venv/bin/python",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "subProcess": true,
+    "multiprocess": true,
+    "justMyCode": false,
+    "console": "integratedTerminal",
+    "program": "src/clinical_friction/ecg_embeddings/run.py",
+    "args": []
+  }
+]

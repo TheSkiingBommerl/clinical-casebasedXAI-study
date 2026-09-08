@@ -47,7 +47,7 @@ brew install postgresql@18
 
 #### 2. Create the database
 
-First, create a database:
+First, create a database (the name is arbitrary):
 ``` bash
 createdb clinicalfriction
 ```
@@ -61,7 +61,7 @@ DB_NAME=clinicalfriction
 #### 3. Initialize the database
 
 Open a terminal and activate the virtual environment.
-Then, run `clinical-friction-init-db` to download the datasets and add the necessary tables to the database.
+Then, run `clinical-friction-init-db` to download the datasets + model and add the necessary tables to the database.
 
 ``` bash
 # Activate venv on MacOS / Linux
@@ -74,7 +74,7 @@ source .venv/bin/activate
 clinical-friction-init-db
 ```
 
-
+#### 4. Initialize the database
 
 ## Experiments
 The websites for the experiments were hosted on our own server and users were managed using LDAP (Lightweight Directory Access Protocol) and for authentication we used OAuth2 with Authelia. Each participant received their individual credentials.
