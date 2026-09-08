@@ -81,7 +81,7 @@ def create_tables():
     conn.close()
 
 
-def initialize_database():
+def main():
     """Populate an existing PSQL database for both experiments"""
 
     # Check if database exists
@@ -181,4 +181,4 @@ def initialize_database():
 
 
 if __name__ == "__main__":
-    initialize_database()
+    main()

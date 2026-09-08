@@ -63,9 +63,9 @@ def run_embeddings(data_dir: Path, device: str, db_batch_size: int):
     ecg_auto_dir = simil_dir / "Out_Population"
     ecg_auto_dir.mkdir(exist_ok=True)
     logger.info(f"Finding AEM-embedding similarity on {len(samples)} samples")
-    find_similar_embeddings(samples, "aed_model_embeddings", fm_dir)
+    find_similar_embeddings(samples, "aed_model_embeddings", ecg_auto_dir)
 
-    logger.info(f"Shuffling DTW - FM pairs for the similarity tool")
+    logger.info(f"Shuffling DTW - FM - AEM pairs for the similarity tool")
     tool_simil_dir = data_dir / "website" / "similarity_comparison"
     tool_simil_dir.mkdir(exist_ok=True, parents=True)
     build_save_table(samples, simil_dir, tool_simil_dir)

@@ -22,7 +22,7 @@
     "multiprocess": true,
     "justMyCode": false,
     "console": "integratedTerminal",
-    "program": "src/clinical_friction/similarity_measure/main.py",
+    "program": "src/clinical_friction/initialize_similarity.py",
     "args": ["--device", "cuda"]
   }
 ]

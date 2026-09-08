@@ -7,7 +7,7 @@ from clinical_friction.database.useful_queries import get_ecg_signals
 from clinical_friction.helpers.remove_padding import remove_zero_padding
 
 LEADS = ["DI", "DII", "DIII", "AVR", "AVL", "AVF", "V1", "V2", "V3", "V4", "V5", "V6"]
-MEASURES = ["DTW", "In_Population", "Out_Population"]
+MEASURES = ["dtw", "In_Population", "Out_Population"]
 
 def load_best_match(path, query_id):
     df = pd.read_csv(path / f"{query_id}.csv", header=None)
