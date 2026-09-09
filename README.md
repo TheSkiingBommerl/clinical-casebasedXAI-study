@@ -41,7 +41,7 @@ sudo apt install postgresql
 _MacOS_
 ``` zsh
 brew install postgresql@18
-```
+```signals
 
 </details>
 
@@ -63,6 +63,12 @@ DB_NAME=clinicalfriction
 Open a terminal and activate the virtual environment.
 Then, run `clinical-friction-init-db` to download the datasets + model and add the necessary tables to the database.
 
+The initialization script downloads the following datasets and models:
+- **CODE-15%** (from [Zenedo](https://zenodo.org/records/3765780/)): _ a large scale annotated dataset of 12-lead ECGs_
+- **PTB-XL** (from [PhysioNet](https://physionet.org/content/ptb-xl/1.0.3/)): _a large publicly available electrocardiography dataset_
+- **ECG-FM finetuned on MIMIC IV** (From [HuggingFace](https://huggingface.co/wanglab/ecg-fm/tree/main)): _a foundation model for electrocardogram (ECG) analysis_
+- **Automatic Diagnosis of the 12-Lead ECG** (from [Zenedo](Automatic Diagnosis of the 12-Lead {{ECG}})): _Automatic diagnosis of the 12-lead ECG using a deep neural network_
+
 ``` bash
 # Activate venv on MacOS / Linux
 source .venv/bin/activate
@@ -74,9 +80,26 @@ source .venv/bin/activate
 clinical-friction-init-db
 ```
 
-#### 4. Initialize the database
+### Initializing the experiments
 
-## Experiments
+The necessary tables and files for each of the two experiments must be generated before running either of the tools.
+
+#### Initialize the similarity comparison experiment
+
+``` bash
+# In the activated virtual environment, run:
+clinical-friction-init-similarity
+```
+
+#### Initialize the decision support experiment
+
+``` bash
+# In the activated virtual environment, run:
+clinical-friction-init-support
+```
+
+## Hosting the website
+
 The websites for the experiments were hosted on our own server and users were managed using LDAP (Lightweight Directory Access Protocol) and for authentication we used OAuth2 with Authelia. Each participant received their individual credentials.
 
 ### Experiment 1 - Retrieval Calibration as Design Rationale

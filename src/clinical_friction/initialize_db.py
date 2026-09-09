@@ -112,7 +112,7 @@ def main():
         download_zip(CODE_URL, code_dir)
 
     # Download and extract PTB-XL dataset
-    if os.path.exists(ptbxl_dir / "ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1"):
+    if ptbxl_dir.glob("ptb-xl-a-large-publicly-available-electrocardiography-dataset*"):
         logger.info(f"PTB-XL already found in {ptbxl_dir}")
     else:
         logger.info(f"Downloading PTB-XL from {PTBXL_URL} (slow)")
@@ -159,7 +159,7 @@ def main():
 
     # Select relevant ECG signals and save to .csv
     logger.info("Extracting relevant PTB-XL signals...")
-    ptbxl_raw = ptbxl_dir / "ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1"
+    ptbxl_raw = next(ptbxl_dir.glob("ptb-xl-a-large-publicly-available-electrocardiography-dataset*"))
 
     ptbxl_csv = processed_dir / "filtered_ecg_experiment_2.csv"
     ptbxl_entries = filter_ptbxl_entries(ptbxl_raw / "ptbxl_database.csv")
