@@ -43,6 +43,8 @@ CONDITION_LABELS = list(CONDITION_MAP.values())
 
 def save_diagnosis_csv(patient_index, diagnosis_csv):
     """Write current patient's selections into the CSV using abbreviations."""
+    logger = st.session_state.logger
+    logger.info(f"patient_{patient_index},diagnosis")
     new_rows = pd.DataFrame({
         "Patient": patient_index,
         "Condition": CONDITION_KEYS,

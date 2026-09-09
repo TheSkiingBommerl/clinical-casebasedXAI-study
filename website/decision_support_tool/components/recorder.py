@@ -10,6 +10,12 @@ import streamlit.components.v1 as components
 # needs to also sit behind authelia!!!
 dotenv.load_dotenv()
 FLASK_BASE = os.environ["FLO_FLASK_BASE"]
+# "https://yourdomain.com/recorder-api"
+
+# The one thing you do need to make sure is that your reverse proxy (nginx/Traefik/etc.)
+# has a rule that maps /recorder-api to 127.0.0.1:5050.
+# That config is what connects the two together behind the scenes.
+
 
 def recorder_button(user):
     challenge = os.environ["FLOCHALLENGE"]

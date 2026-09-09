@@ -1,4 +1,3 @@
-# Emoji used in this file are from: https://emojipedia.org
 import streamlit as st
 import pandas as pd
 
@@ -41,9 +40,6 @@ def predication_table_hower(diagnosis, certainty):
     return df, column_config
 
 def predication_table_html(diagnosis, certainty):
-    """
-    This function was created by Sonnet 4.6
-    """
     abn = ['1dAVb', 'RBBB', 'LBBB', 'SB', 'ST', 'AF']
     
     predictions = ["❌" if i == 0 else "✅" for i in diagnosis]
@@ -126,5 +122,9 @@ def record(title, gender, age, diagnosis = None, isPrediction = False, certainty
         """, unsafe_allow_html=True)
 
         if diagnosis is not None and isPrediction == True:
+            # df = predication_table(diagnosis, certainty)
+            # st.dataframe(df, hide_index=True, use_container_width=True)
+            # html = predication_table_html(diagnosis, certainty)
+            # st.markdown(html, unsafe_allow_html=True)
             df, column_config = predication_table_hower(diagnosis, certainty)
             st.dataframe(df, hide_index=True, use_container_width=True, column_config=column_config)

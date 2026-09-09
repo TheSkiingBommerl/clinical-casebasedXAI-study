@@ -5,9 +5,10 @@ from components.flag_button import flag_button, load_flags
 from clinical_friction.helpers.load_parquets import load_case
 from components.sidebar import sidebar, init_sidebar_state
 from components.scroll_to_top import scroll_to_top
-from components.questionnaire import questionnaire, disable_questionnaire
+from components.questionnaire import questionnaire, safety_check_questionnaire
 from components.state import get_resume_state
 from components.intro import intro, privacy, screenrecording
+from components.log import patient_logger
 import csv
 import os
 import dotenv
@@ -15,6 +16,8 @@ from pathlib import Path
 from components.recorder import recorder_button, stop_recording
 import pandas as pd
 import datetime
+from loguru import logger
+import time
 
 dotenv.load_dotenv()
 
@@ -26,6 +29,8 @@ for var in required_vars:
 
 root = Path(os.environ["FLO_RESULTS"]) / "results"
 root.mkdir(exist_ok=True, parents=True)
+
+
 
 @st.cache_data
 def get_data(user, index: int) -> dict:
@@ -61,9 +66,12 @@ if not st.user.is_logged_in:
 
 if st.user.is_logged_in:
     user = st.user.get("preferred_username")
+    logger = patient_logger(root, str(user))
+    st.session_state["logger"] = logger
 
     if "page" not in st.session_state:
         page = get_resume_state(user)
+        #logger.debug(f"USER {user}: loaded state {page}")
         st.session_state.page = page
 
     # Introduction Page
@@ -154,6 +162,8 @@ if st.user.is_logged_in:
         if "patient_index" not in st.session_state:
             st.session_state.patient_index = 0
 
+        #logger.debug(f"USER {user}: patient index {st.session_state.patient_index}")
+
         st.session_state.reference_index = 2
         if "flagged_patients" not in st.session_state:
             st.session_state.flagged_patients = load_flags(user)
@@ -177,6 +187,7 @@ if st.user.is_logged_in:
                 if st.button("⬇", use_container_width=True):
                     st.session_state.current_section = "patient"
                     st.session_state.scroll_to_top = True
+                    logger.info(f"patient_{st.session_state.patient_index},entry")
                     st.rerun()
 
         elif st.session_state.current_section == "patient":
@@ -211,20 +222,36 @@ if st.user.is_logged_in:
                 if not is_last:
                     if st.button("⬇", use_container_width=True, help="Next patient"):
                         st.session_state.patient_index += 1
+                        logger.info(f"patient_{st.session_state.patient_index},entry")
                         st.session_state.scroll_to_top = True
                         st.rerun()
+
                 if is_last:
-                    disable = disable_questionnaire(root, user, patient_count)
-                    if st.button("⬇", disabled=disable, use_container_width=True, help="Questionnaire"):
-                        st.session_state.current_section = "questionnaire"
-                        st.session_state.scroll_to_top = True
-                        st.rerun()
+                    warning_placeholder = st.empty()
+
+                    if st.button("⬇", use_container_width=True, help="Questionnaire"):
+                        if safety_check_questionnaire(root, user, patient_count):
+                            warning_placeholder.warning(
+                                "Not all patients have been filled in. "
+                                "Check the ✓-signs in the sidebar to see which ones are incomplete.",
+                                icon="⚠️"
+                            )
+
+                        else:
+                            logger.info(f"questionnaire,entry")
+                            st.session_state.current_section = "questionnaire"
+                            st.session_state.scroll_to_top = True
+                            st.rerun()
 
         elif st.session_state.current_section == "questionnaire":
             all_filled, survey = questionnaire()
             disable = True
             if all_filled:
                 disable = False
+            else:
+                # Add survey start time to streamlit state
+                if 'survey_start' not in st.session_state.keys():
+                    st.session_state['survey_start'] = datetime.datetime.now()
 
             col = st.columns([4, 1, 4])[1]
             with col:
@@ -238,16 +265,30 @@ if st.user.is_logged_in:
                     df = pd.DataFrame([data])
                     df.to_csv(root / user / f"survey_data_{user}.csv", mode="a", header=not pd.io.common.file_exists(root / f"survey_data_{user}.csv"), index=False)
 
+                    # Questionaire
                     file_path = root / user / f"progress_{user}.csv"
                     with open(file_path, "w", newline="") as f:
                         writer = csv.writer(f)
                         writer.writerow(["status"])  # re-write header
                         writer.writerow(["done"])
+                        #logger.debug(f"USER {user}: submission written to {str(file_path)}")
+
+                    # Time
+                    time_start = st.session_state['survey_start']
+                    time_end = datetime.datetime.now()
+                    seconds = (time_end - time_start).total_seconds()
+                    cols = ["user", "time_start", "time_end", "seconds"]
+                    row = [user, time_start, time_end, seconds]
+                    df = pd.DataFrame([row], columns=cols)
+
+                    file_path = root / user / f"survey_time_{user}.csv"
+                    df.to_csv(file_path, index=False)
 
                     st.rerun()
 
     # Log out page
     if st.session_state.page == "submitted":
+        #logger.debug(f"USER {user}: submitted")
         stop_recording(user)
 
         st.success("Thank you! Your responses have been submitted.")

@@ -5,7 +5,6 @@ import os
 LEAD_NAMES = ["DI", "DII", "DIII", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"]
 CACHE_DIR  = "data/cached_plots"
 
-# The spinner html was created by Sonnet 4.6
 SPINNER_HTML = """
 <div id="ecg-loader" style="
     display:flex; align-items:center; justify-content:center; gap:10px; padding:20px;
