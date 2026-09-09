@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from pathlib import Path
 
-root = Path(os.environ["FLO_RESULTS"]) / "results"
+root = Path(os.environ["CF_DATA_DIR"]) / "results" /  "similarity_comparison"
 
 def get_resume_state(user, total):
 
@@ -25,5 +25,3 @@ def get_resume_state(user, total):
         return "submitted", total - 1
 
     return "main", next_index
-
-

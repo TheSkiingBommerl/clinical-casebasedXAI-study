@@ -28,7 +28,7 @@ for var in required_vars:
     if var not in os.environ:
         raise RuntimeError(f"Variable {var} not found in environment variables!")
 
-root = Path(os.environ["CF_DATA_DIR"]) / "results" /  "clinical_decision_support"
+root = Path(os.environ["CF_DATA_DIR"]) / "results" "clinical_decision_support"
 root.mkdir(exist_ok=True, parents=True)
 
 user_bypass = is_bypassed()
@@ -161,7 +161,7 @@ if user_bypass is not None or is_logged_in:
 
         dataset = user.split("_")[-1]
 
-        folder =  data_path = Path(os.getenv("CF_DATA_DIR")) / "website" / "clinical_decision_support" / dataset
+        folder =  data_path = Path(os.getenv("CF_DATA_DIR")) / "website" / "clinical_decision_support" / {}
         patient_count = len(list(folder.glob("*.parquet")))
 
         patients = {}

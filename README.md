@@ -102,6 +102,27 @@ clinical-friction-init-support
 
 The websites for the experiments were hosted on our own server and users were managed using LDAP (Lightweight Directory Access Protocol) and for authentication we used OAuth2 with Authelia. Each participant received their individual credentials.
 
+### Using your own Oauth 2 endpoint
+
+Setting up a OAuth2 provider is nontrivial.
+We used [LLDAP](https://github.com/lldap/lldap) for the user management and [Authelia](https://www.authelia.com/).
+A domain name is needed.
+
+If you know how to do this, rename `example_secrets.toml` in the `.streamlit` to `secrets.toml` and fill it in.
+
+### Bypassing the login to demo the tool.
+
+It is possible to bypass the login checks when running locally by setting the following environment variabe:
+
+``` bash
+# Set this environment variable to bypass the login.
+# Valid suffixes are _0_0 up to _0_7
+export CF_BYPASS_LOGIN=participant_0_1
+```
+
+The hosted tool will recognize you as this participant.
+
+
 ### Experiment 1 - Retrieval Calibration as Design Rationale
 To choose a fitting ... three similarity methods were ranked by medical professionals.
 
