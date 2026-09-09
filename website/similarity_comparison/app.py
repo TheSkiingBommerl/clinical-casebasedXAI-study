@@ -11,7 +11,7 @@ from components.ranking import ranking_section
 from components.recorder import recorder_button, stop_recording
 from components.signal_comparison import comparison_per_lead, display_summary
 from components.state import get_resume_state
-from clinical_friction.helpers.login_bypass import is_bypassed
+from AI_diagnostic_support.helpers.login_bypass import is_bypassed
 
 dotenv.load_dotenv()
 

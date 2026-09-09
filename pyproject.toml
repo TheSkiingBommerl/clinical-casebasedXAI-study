@@ -1,5 +1,5 @@
 [project]
-name = "clinical-friction"
+name = "AI_diagnostic_support"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -38,16 +38,16 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/clinical_friction"]
+packages = ["src/AI_diagnostic_support"]
 
 [tool.hatch.build.targets.wheel.force-include]
-"src/clinical_friction/database/create_db.sql" = "clinical_friction/database/create_db.sql"
+"src/AI_diagnostic_support/database/create_db.sql" = "AI_diagnostic_support/database/create_db.sql"
 
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [project.scripts]
-clinical-friction-init-db = "clinical_friction.initialize_db:main"
-clinical-friction-init-similarity = "clinical_friction.initialize_similarity:main"
-clinical-friction-init-support = "clinical_friction.initialize_support:main"
+AI-support-for-ECG-init-db = "AI_diagnostic_support.initialize_db:main"
+AI-support-for-ECG-init-similarity = "AI_diagnostic_support.initialize_similarity:main"
+AI-support-for-ECG-init-support = "AI_diagnostic_support.initialize_support:main"

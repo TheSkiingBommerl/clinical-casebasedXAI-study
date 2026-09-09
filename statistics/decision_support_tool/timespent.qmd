@@ -1,0 +1,129 @@
+---
+title: "Decision Support Tool - Time Spent"
+---
+
+```{r}
+#| message: false
+#| warning: false
+#| code-fold: true
+#| code-summary: "Libraries, helper functions"
+library(lme4)
+library(lmerTest)
+library(emmeans)
+library(DHARMa)
+library(ggplot2)
+
+
+# A function to put lmer results in a markdown table
+lmer_markdown <- function(model, caption = "") {
+    s <- summary(model)
+    coefs <- as.data.frame(s$coefficients)
+
+    CI_lower <- coefs$Estimate - 1.96 * coefs$`Std. Error`
+    CI_upper <- coefs$Estimate + 1.96 * coefs$`Std. Error`
+    ratio <- exp(coefs$Estimate)
+
+    res_df <- data.frame(
+        Term = rownames(coefs),
+        Estimate = sprintf("%.4f", coefs$Estimate),
+        `Std. Error` = sprintf("%.4f", coefs$`Std. Error`),
+        `95% CI` = sprintf("[%.4f, %.4f]", CI_lower, CI_upper),
+        `Ratio (exp(b))` = sprintf("%.3f", ratio),
+        `t value` = sprintf("%.3f", coefs$`t value`),
+        check.names = FALSE
+    )
+
+    if ("Pr(>|t|)" %in% colnames(coefs)) {
+        res_df$`p value` <- ifelse(coefs$`Pr(>|t|)` < 0.001, "< 0.001", sprintf("%.4f", coefs$`Pr(>|t|)`))
+    } else {
+        p_vals <- 2 * (1 - pnorm(abs(coefs$`t value`)))
+        res_df$`p value` <- ifelse(p_vals < 0.001, "< 0.001", sprintf("%.4f", p_vals))
+    }
+
+    knitr::kable(res_df, caption = caption, align = "lrrrrrr")
+}
+```
+
+```{r}
+raw_data <- read.csv("patient_timesums.csv")
+
+# Ensure response is numeric (seconds spent)
+raw_data$seconds <- as.numeric(raw_data$seconds)
+
+# Filter out extreme outliers (> 30 minutes)
+clean_data <- raw_data[raw_data$seconds <= 1800, ]
+
+# Ensure random grouping variables are factors
+clean_data$participant <- factor(clean_data$participant)
+clean_data$patient <- factor(clean_data$patient)
+clean_data$arm_name <- factor(clean_data$arm_name)
+clean_data$trial_order <- clean_data$patient_index
+
+# 2x2 Factorial coding
+clean_data$pred_support <- factor(ifelse(clean_data$arm %in% c(1, 3), "Yes", "No"), levels = c("No", "Yes"))
+clean_data$case_support <- factor(ifelse(clean_data$arm %in% c(2, 3), "Yes", "No"), levels = c("No", "Yes"))
+
+if (knitr::is_html_output()) {
+    rmarkdown::paged_table(clean_data)
+}
+```
+
+## Boxlot
+
+Distribution of time spent (in seconds) across study arms:
+
+```{r}
+#| fig-width: 8
+#| fig-height: 4.5
+ggplot(clean_data, aes(x = seconds, y = reorder(arm_name, seconds, FUN = median), fill = arm_name)) +
+    geom_boxplot(alpha = 0.6, outlier.shape = NA) +
+    geom_jitter(height = 0.15, alpha = 0.35, size = 1.8) +
+    scale_x_log10(breaks = c(10, 30, 60, 120, 300, 600, 1200)) +
+    theme_minimal(base_size = 12) +
+    labs(
+        title = "Distribution of Time Spent per Study Arm",
+        x = "Time spent per patient in Seconds (log scale)",
+        y = "Study Arm"
+    ) +
+    theme(
+        legend.position = "none",
+        panel.grid.minor = element_blank()
+    )
+```
+
+## Linear Mixed Model on Time Spent
+
+Fits a a linear mixed model with crossed random intercepts for participant and patient.
+Trial order and experience is added as a covariate.
+
+
+```{r}
+model_seconds <- lmer(
+    log(seconds) ~ pred_support * case_support + trial_order + experience_level + (1 | participant) + (1 | patient),
+    data = clean_data,
+)
+
+lmer_markdown(model_seconds, caption = "Model 1: Linear Mixed Model on Log Time Spent (seconds)")
+```
+**Trial order:** Appears to have a negative significant effect.
+**Experience**: Not significant
+
+## Estimated Marginal Means & Pairwise Contrasts
+
+Estimated mean task completion time (seconds) per study arm back-transformed from log scale:
+
+```{r}
+emm_arms <- emmeans(model_seconds, ~ pred_support * case_support, type = "response")
+emm_arms
+
+pairs(emm_arms)
+```
+
+## Is the model fitted correctly?
+
+It appears so.
+
+```{r}
+sim_res <- simulateResiduals(model_seconds)
+plot(sim_res)
+```

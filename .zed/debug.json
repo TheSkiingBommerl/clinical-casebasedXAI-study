@@ -9,7 +9,7 @@
     "multiprocess": true,
     "justMyCode": false,
     "console": "integratedTerminal",
-    "program": "src/clinical_friction/initialize_db.py",
+    "program": "src/AI_diagnostic_support/initialize_db.py",
     "args": []
   },
   {
@@ -22,7 +22,7 @@
     "multiprocess": true,
     "justMyCode": false,
     "console": "integratedTerminal",
-    "program": "src/clinical_friction/initialize_similarity.py",
+    "program": "src/AI_diagnostic_support/initialize_similarity.py",
     "args": ["--device", "cuda"]
   },
   {
@@ -35,7 +35,7 @@
     "multiprocess": true,
     "justMyCode": false,
     "console": "integratedTerminal",
-    "program": "src/clinical_friction/initialize_support.py",
+    "program": "src/AI_diagnostic_support/initialize_support.py",
     "args": []
   }
 ]

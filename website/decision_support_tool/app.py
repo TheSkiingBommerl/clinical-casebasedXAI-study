@@ -2,7 +2,7 @@ import streamlit as st
 from components.study_arms import baseline, study_arm_1, study_arm_2, study_arm_3
 from components.diagnosis import diagnosis
 from components.flag_button import flag_button, load_flags
-from clinical_friction.helpers.load_parquets import load_case
+from AI_diagnostic_support.helpers.load_parquets import load_case
 from components.sidebar import sidebar, init_sidebar_state
 from components.scroll_to_top import scroll_to_top
 from components.questionnaire import questionnaire, safety_check_questionnaire
@@ -18,7 +18,7 @@ import pandas as pd
 import datetime
 from loguru import logger
 import time
-from clinical_friction.helpers.login_bypass import is_bypassed
+from AI_diagnostic_support.helpers.login_bypass import is_bypassed
 
 dotenv.load_dotenv()
 

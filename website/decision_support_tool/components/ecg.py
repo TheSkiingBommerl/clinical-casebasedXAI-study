@@ -2,7 +2,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import os
 from pathlib import Path
-from clinical_friction.helpers.login_bypass import is_bypassed
+from AI_diagnostic_support.helpers.login_bypass import is_bypassed
 
 LEAD_NAMES = ["DI", "DII", "DIII", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"]
 CACHE_DIR  = "data/cached_plots"

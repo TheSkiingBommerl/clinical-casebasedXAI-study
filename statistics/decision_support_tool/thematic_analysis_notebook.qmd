@@ -1,0 +1,2234 @@
+---
+title: "Qualitative Thematic Analysis"
+subtitle: "Post-study survey — CHI 2027 Florentine"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    code-fold: false
+    code-tools: true
+    code-overflow: wrap
+    embed-resources: true
+    theme: cosmo
+execute:
+  echo: true
+  warning: false
+  message: false
+  error: false
+editor: source
+---
+
+<style>
+body { line-height: 1.55; }
+.callout { margin-top: 1.2rem; margin-bottom: 1.2rem; }
+table { font-size: 0.90rem; }
+blockquote { border-left-color: #2c5282; color: #243447; }
+.cell-output-display { overflow-x: auto; }
+</style>
+
+## Purpose and analytic status
+
+This executable notebook contains **only the qualitative analysis** of the two
+open-ended post-study survey questions:
+
+1. *What was your experience with the tool?*
+2. *What factors made you trust or distrust the AI's prediction?*
+
+It implements a semantic codebook thematic analysis of the updated survey with
+27 participants. Twenty-six participants supplied at least one open-ended
+response; one participant completed the closed-ended survey but supplied no
+qualitative text. The notebook does not analyze closed-ended survey items,
+diagnostic performance, or experimental-condition effects.
+
+To render the notebook in RStudio, open this file and click **Render**. From a
+terminal, run:
+
+```bash
+quarto render thematic_analysis_notebook.qmd
+```
+
+The result is a self-contained HTML file in which every R code block is shown
+immediately above its output. The notebook requires R 4.1 or newer, Quarto, and
+the `knitr` package normally installed with RStudio/Quarto support; the analysis
+itself uses no additional R packages.
+
+## Configuration and reproducibility safeguards
+
+The exact OneDrive directory supplied for the project is the default. The
+environment variable `CHI2027_FLORENTINE_DIR` can override it when the project
+is run on another computer. If the default directory does not exist but the CSV
+is next to the notebook, the notebook uses its current directory.
+
+```{r}
+#| label: configuration
+
+DEFAULT_PROJECT_DIR <- paste0(
+  "/Users/elenaberetta/Library/CloudStorage/",
+  "OneDrive-VrijeUniversiteitAmsterdam/",
+  "Documenti - OneDrive/VU/Codice/CHI2027-Florentine"
+)
+
+project_dir <- Sys.getenv(
+  "CHI2027_FLORENTINE_DIR",
+  unset = DEFAULT_PROJECT_DIR
+)
+
+if (!dir.exists(project_dir)) {
+  local_candidates <- list.files(
+    getwd(),
+    pattern = "^survey_data_all_participants.*\\.csv$",
+    full.names = TRUE,
+    ignore.case = TRUE
+  )
+
+  if (length(local_candidates) == 0L) {
+    stop(
+      paste0(
+        "Project directory not found:\n", project_dir,
+        "\n\nPlace the notebook and survey CSV in the same directory, ",
+        "edit DEFAULT_PROJECT_DIR, or set CHI2027_FLORENTINE_DIR."
+      )
+    )
+  }
+
+  project_dir <- getwd()
+}
+
+preferred_input_file <- file.path(
+  project_dir,
+  "survey_data_all_participants_1.csv"
+)
+
+if (file.exists(preferred_input_file)) {
+  input_file <- preferred_input_file
+} else {
+  input_candidates <- list.files(
+    project_dir,
+    pattern = "^survey_data_all_participants.*\\.csv$",
+    full.names = TRUE,
+    ignore.case = TRUE
+  )
+
+  if (length(input_candidates) != 1L) {
+    stop(
+      paste0(
+        "Expected one survey CSV but found ", length(input_candidates),
+        ". Rename the updated file to survey_data_all_participants_1.csv ",
+        "or set preferred_input_file explicitly."
+      )
+    )
+  }
+
+  input_file <- input_candidates[[1L]]
+}
+
+output_dir <- file.path(project_dir, "qualitative_analysis_outputs")
+dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+
+EXPECTED_PARTICIPANTS <- 1:27
+EXPECTED_QUALITATIVE_SIGNATURE <- 720210829
+
+cat("Input file:", input_file, "\n")
+cat("Output directory:", output_dir, "\n")
+```
+
+The semantic signature is calculated only from participant IDs and normalized
+open-text responses. This is intentional: fixed qualitative coding must not be
+silently applied to another version of the data.
+
+```{r}
+#| label: helper-functions
+
+normalize_whitespace <- function(x) {
+  x[is.na(x)] <- ""
+  trimws(gsub("[[:space:]]+", " ", x))
+}
+
+semantic_signature <- function(x) {
+  code_points <- utf8ToInt(enc2utf8(paste(x, collapse = "\n")))
+  hash <- 0
+
+  for (value in code_points) {
+    hash <- (hash * 31 + value) %% 2147483647
+  }
+
+  as.numeric(hash)
+}
+
+make_assignment <- function(participants, source_question, code) {
+  data.frame(
+    participant = as.integer(participants),
+    source_question = source_question,
+    code = code,
+    stringsAsFactors = FALSE
+  )
+}
+
+format_ids <- function(x) {
+  paste(sprintf("P%02d", sort(unique(as.integer(x)))), collapse = ", ")
+}
+
+collapse_unique <- function(x) {
+  paste(sort(unique(x)), collapse = "; ")
+}
+
+write_utf8_csv <- function(x, path) {
+  connection <- file(path, open = "wt", encoding = "UTF-8")
+  on.exit(close(connection), add = TRUE)
+  utils::write.csv(x, connection, row.names = FALSE, na = "")
+}
+```
+
+## Import and data-integrity checks
+
+The raw CSV is read but never modified.
+
+```{r}
+#| label: import-survey
+
+survey <- tryCatch(
+  utils::read.csv(
+    input_file,
+    stringsAsFactors = FALSE,
+    check.names = FALSE,
+    fileEncoding = "UTF-8-BOM",
+    na.strings = character(0)
+  ),
+  error = function(e) {
+    utils::read.csv(
+      input_file,
+      stringsAsFactors = FALSE,
+      check.names = FALSE,
+      fileEncoding = "UTF-8",
+      na.strings = character(0)
+    )
+  }
+)
+
+names(survey) <- sub("^\ufeff", "", names(survey))
+
+participant_col <- "participant"
+experience_col <- "What was your experience with the tool?"
+trust_col <- "What factors made you trust or distrust the AI's prediction?"
+
+required_columns <- c(participant_col, experience_col, trust_col)
+missing_columns <- setdiff(required_columns, names(survey))
+
+if (length(missing_columns) > 0L) {
+  stop(
+    paste0(
+      "Required qualitative columns are missing:\n",
+      paste(missing_columns, collapse = "\n")
+    )
+  )
+}
+
+survey$participant <- suppressWarnings(
+  as.integer(trimws(as.character(survey[[participant_col]])))
+)
+
+if (anyNA(survey$participant)) {
+  stop("The participant column contains missing or non-numeric IDs.")
+}
+
+if (anyDuplicated(survey$participant)) {
+  stop("Participant IDs are not unique.")
+}
+
+survey <- survey[order(survey$participant), , drop = FALSE]
+row.names(survey) <- NULL
+
+if (!identical(survey$participant, EXPECTED_PARTICIPANTS)) {
+  stop(
+    paste0(
+      "This notebook was coded for participant IDs 1-27. Found: ",
+      paste(survey$participant, collapse = ", "),
+      ". The responses must be recoded if the sample changes."
+    )
+  )
+}
+
+signature_source <- paste0(
+  survey$participant,
+  "||",
+  normalize_whitespace(survey[[experience_col]]),
+  "||",
+  normalize_whitespace(survey[[trust_col]])
+)
+
+actual_signature <- semantic_signature(signature_source)
+
+if (!identical(actual_signature, EXPECTED_QUALITATIVE_SIGNATURE)) {
+  stop(
+    paste0(
+      "The qualitative responses do not match the coded CSV version.\n",
+      "Expected signature: ", EXPECTED_QUALITATIVE_SIGNATURE, "\n",
+      "Observed signature: ", actual_signature, "\n",
+      "Review and update all coding assignments before rerunning."
+    )
+  )
+}
+
+experience_available <- normalize_whitespace(survey[[experience_col]]) != ""
+trust_available <- normalize_whitespace(survey[[trust_col]]) != ""
+any_qualitative_text <- experience_available | trust_available
+
+QUALITATIVE_PARTICIPANTS <- survey$participant[any_qualitative_text]
+QUALITATIVE_N <- length(QUALITATIVE_PARTICIPANTS)
+AVAILABLE_RESPONSE_N <- sum(experience_available) + sum(trust_available)
+MISSING_RESPONSE_N <- 2L * nrow(survey) - AVAILABLE_RESPONSE_N
+NO_TEXT_PARTICIPANTS <- survey$participant[!any_qualitative_text]
+
+data.frame(
+  check = c(
+    "Survey participants",
+    "Potential open-ended responses",
+    "Available open-ended responses",
+    "Participants contributing qualitative text",
+    "Participants with no qualitative text",
+    "Missing qualitative responses",
+    "Duplicate participant IDs",
+    "Semantic signature"
+  ),
+  result = c(
+    nrow(survey),
+    2L * nrow(survey),
+    AVAILABLE_RESPONSE_N,
+    QUALITATIVE_N,
+    format_ids(NO_TEXT_PARTICIPANTS),
+    MISSING_RESPONSE_N,
+    0L,
+    actual_signature
+  )
+) |>
+  knitr::kable(caption = "Data-integrity checks")
+```
+
+## Qualitative corpus
+
+The two response fields per participant are converted to long format while
+preserving the original wording. Empty fields remain documented in
+`responses_long_all`; only non-empty responses enter the analytic corpus. No
+spelling or grammar is corrected in the source text. English translations are
+provided alongside the two German responses from P27.
+
+```{r}
+#| label: create-corpus
+
+responses_long_all <- rbind(
+  data.frame(
+    participant = survey$participant,
+    participant_label = sprintf("P%02d", survey$participant),
+    source_question = "tool_experience",
+    question_text = experience_col,
+    response_text = as.character(survey[[experience_col]]),
+    stringsAsFactors = FALSE
+  ),
+  data.frame(
+    participant = survey$participant,
+    participant_label = sprintf("P%02d", survey$participant),
+    source_question = "trust_factors",
+    question_text = trust_col,
+    response_text = as.character(survey[[trust_col]]),
+    stringsAsFactors = FALSE
+  )
+)
+
+responses_long_all$normalized_response <- normalize_whitespace(
+  responses_long_all$response_text
+)
+responses_long_all$response_available <-
+  responses_long_all$normalized_response != ""
+responses_long_all$response_characters <- nchar(
+  responses_long_all$normalized_response,
+  type = "chars"
+)
+
+responses_long_all$translation_en <- ""
+responses_long_all$translation_en[
+  responses_long_all$participant == 27 &
+    responses_long_all$source_question == "tool_experience"
+] <- paste0(
+  "It helps to recognize what is essential, but it also tempts one not to ",
+  "conduct a step-by-step analysis."
+)
+responses_long_all$translation_en[
+  responses_long_all$participant == 27 &
+    responses_long_all$source_question == "trust_factors"
+] <- "Correlation with age."
+
+responses_long_all$analysis_text <- ifelse(
+  responses_long_all$translation_en == "",
+  responses_long_all$response_text,
+  responses_long_all$translation_en
+)
+
+responses_long_all <- responses_long_all[
+  order(responses_long_all$participant, responses_long_all$source_question),
+  ,
+  drop = FALSE
+]
+row.names(responses_long_all) <- NULL
+
+responses_long <- responses_long_all[
+  responses_long_all$response_available,
+  ,
+  drop = FALSE
+]
+row.names(responses_long) <- NULL
+
+corpus_summary <- aggregate(
+  response_characters ~ source_question,
+  data = responses_long,
+  FUN = function(x) {
+    c(
+      n = length(x),
+      median = stats::median(x),
+      minimum = min(x),
+      maximum = max(x)
+    )
+  }
+)
+
+corpus_summary <- data.frame(
+  source_question = corpus_summary$source_question,
+  corpus_summary$response_characters,
+  row.names = NULL
+)
+
+knitr::kable(
+  corpus_summary,
+  caption = "Length of the qualitative responses in characters"
+)
+```
+
+```{r}
+#| label: fig-response-length
+#| fig-cap: "Distribution of response lengths for the two open-ended questions. Points represent individual responses; boxes summarize the median and interquartile range."
+#| fig-width: 9
+#| fig-height: 4.8
+
+responses_long$question_display <- factor(
+  responses_long$source_question,
+  levels = c("tool_experience", "trust_factors"),
+  labels = c("Tool experience", "Trust and distrust factors")
+)
+
+question_colors <- c("#0072B2", "#D55E00")
+set.seed(2027)
+
+boxplot(
+  response_characters ~ question_display,
+  data = responses_long,
+  horizontal = TRUE,
+  outline = FALSE,
+  col = grDevices::adjustcolor(question_colors, alpha.f = 0.22),
+  border = question_colors,
+  xlab = "Response length in characters",
+  las = 1
+)
+
+stripchart(
+  response_characters ~ question_display,
+  data = responses_long,
+  horizontal = TRUE,
+  method = "jitter",
+  jitter = 0.12,
+  add = TRUE,
+  pch = 16,
+  col = question_colors
+)
+```
+
+The trust/distrust prompt elicited longer and more analytically differentiated
+responses than the general experience prompt. This asymmetry matters when
+interpreting code coverage: a code observed mainly in the trust responses may
+partly reflect the structure of the prompt rather than greater substantive
+importance.
+
+The complete corpus is displayed below to make the relationship between raw
+responses and interpretation inspectable.
+
+```{r}
+#| label: display-corpus
+
+knitr::kable(
+  responses_long[
+    ,
+    c(
+      "participant_label",
+      "source_question",
+      "response_text",
+      "translation_en"
+    )
+  ],
+  col.names = c(
+    "Participant",
+    "Question",
+    "Original response",
+    "English translation when applicable"
+  ),
+  caption = "Complete qualitative corpus"
+)
+```
+
+## Codebook
+
+The analysis is semantic: codes describe explicit meanings in responses rather
+than latent psychological constructs. A response may receive more than one code
+when it contains multiple meaning units.
+
+```{r}
+#| label: define-codebook
+
+codebook <- data.frame(
+  code = c(
+    "ease_or_learnability",
+    "interface_friction",
+    "perceived_training_value",
+    "diagnostic_search_reduction",
+    "attention_direction",
+    "confidence_or_reassurance",
+    "concordance_with_own_interpretation",
+    "observed_accuracy",
+    "manual_verification",
+    "model_fallibility_or_incompleteness",
+    "stability_or_agreement_cue",
+    "perceived_measurement_capability",
+    "training_data_provenance",
+    "prior_clinical_ai_experience",
+    "reference_case_relevance_or_corroboration",
+    "bounded_or_conditional_reliance",
+    "low_expertise_drives_reliance",
+    "judgment_influence_or_shortcut_risk",
+    "unmodeled_clinical_or_acquisition_context"
+  ),
+  label = c(
+    "Ease or learnability",
+    "Interface friction",
+    "Perceived training value",
+    "Diagnostic-search reduction",
+    "Attention direction",
+    "Confidence or reassurance",
+    "Concordance with own interpretation",
+    "Observed accuracy",
+    "Manual verification",
+    "Model fallibility or incompleteness",
+    "Stability or agreement cue",
+    "Perceived measurement capability",
+    "Training-data provenance",
+    "Prior clinical-AI experience",
+    "Reference-case relevance or corroboration",
+    "Bounded or conditional reliance",
+    "Low expertise drives reliance",
+    "Judgment influence or shortcut risk",
+    "Unmodeled clinical or acquisition context"
+  ),
+  definition = c(
+    "The interface is described as easy, readable, or becoming easier after familiarization.",
+    "A concrete interaction burden is identified, such as lengthy explanations, slowness, changing axes, or initial confusion.",
+    "The tool is described as supporting learning, early-career clinicians, or ECG understanding.",
+    "The prediction narrows differentials, shortlists pathologies, or supplies an initial diagnostic direction.",
+    "The prediction directs attention to ECG regions, measurements, or decision thresholds.",
+    "The support is described as increasing confidence in forming a diagnosis.",
+    "Trust follows agreement with the participant's prior diagnosis or visible ECG evidence.",
+    "Trust is updated from perceived correctness across cases encountered during the study.",
+    "The participant checks AI output against personal interpretation or manual measurements.",
+    "Distrust reflects known errors, imperfect output, or incomplete interpretation.",
+    "Displayed prediction stability or agreement among models is used as a trust cue.",
+    "Trust is based on a belief that AI can measure objective ECG parameters precisely.",
+    "Trust depends on the amount, labeling quality, or population diversity of training data.",
+    "Prior exposure to hospital ECG AI informs current trust or skepticism.",
+    "The perceived relevance, similarity, mismatch, or distracting character of a reference case affects trust or decision formation.",
+    "AI is explicitly treated as supportive or advisory rather than definitive evidence.",
+    "Limited self-assessed ECG expertise is explicitly given as a reason for trusting AI.",
+    "The prediction is said to influence a diagnostic threshold or risk displacing independent reasoning.",
+    "Distrust arises because anatomy, acquisition errors, or contextual variables may be outside the model."
+  ),
+  include_when = c(
+    "Explicit ease, readability, or improvement after familiarization.",
+    "A specific usability problem is named.",
+    "Learning, training, early-career use, or improved understanding is explicit.",
+    "Differential reduction, shortlisting, or diagnostic direction is explicit.",
+    "An attentional or measurement target is named.",
+    "Support is explicitly linked to greater diagnostic confidence.",
+    "Trust is conditional on agreement with one's own diagnosis or visible features.",
+    "Repeated or high observed correctness is cited.",
+    "Counter-checking, measuring, or double-checking is explicit.",
+    "Errors, non-perfect performance, or missed findings are mentioned.",
+    "A numerical stability/confidence display or model agreement is cited.",
+    "Precise analysis of measurable ECG parameters is explicitly cited as a reason for trust.",
+    "Training-set size, labels, or diversity is cited.",
+    "A hospital or previously used clinical AI system is cited.",
+    "A reference patient or ECG explicitly supports, undermines, or distracts from the decision because of its perceived relevance or similarity.",
+    "The response explicitly limits reliance, for example by saying that AI is supportive, not definitive, or not fully relied upon.",
+    "Poor or limited ECG knowledge is explicitly linked to greater reliance.",
+    "The participant explicitly reports AI influence on their own judgment.",
+    "Concrete patient or acquisition factors outside the model are listed."
+  ),
+  exclude_when = c(
+    "Generic approval without an ease or learning claim.",
+    "Generic dislike without a concrete interaction issue.",
+    "General usefulness without a learning or training claim.",
+    "Generic helpfulness without a search-space or direction mechanism.",
+    "General guidance without an attentional or measurement target.",
+    "Trust alone without greater self-confidence.",
+    "Agreement between systems rather than with the participant's own judgment.",
+    "General model-quality statements without observed study performance.",
+    "General skepticism without an active checking action.",
+    "Abstract training-data concerns without a failure or incompleteness claim.",
+    "Agreement with the participant rather than a displayed system cue.",
+    "Observed correctness without a claim about measurement capability.",
+    "Observed study accuracy without a training-data claim.",
+    "General awareness of AI fallibility without prior clinical-AI experience.",
+    "Generic AI agreement without a reference case or a reference case mentioned without an effect on trust or decision-making.",
+    "Manual checking alone without an explicit statement that reliance is limited.",
+    "Low trust caused by low expertise; this code requires increased reliance.",
+    "Helpful guidance without reported influence on independent judgment.",
+    "Generic uncertainty without concrete contextual or acquisition factors."
+  ),
+  stringsAsFactors = FALSE
+)
+
+if (anyDuplicated(codebook$code)) {
+  stop("Duplicate code names found in the codebook.")
+}
+
+knitr::kable(
+  codebook,
+  caption = "Qualitative codebook and coding boundaries"
+)
+```
+
+## Explicit coding assignments
+
+Each row created below identifies one participant response and one analytic
+code. The assignments are explicit so that every code can be traced to its
+source response.
+
+```{r}
+#| label: coding-assignments
+
+coding <- do.call(
+  rbind,
+  list(
+    make_assignment(c(1, 3, 15, 19, 24), "tool_experience", "ease_or_learnability"),
+    make_assignment(c(3, 9, 19, 25), "tool_experience", "interface_friction"),
+    make_assignment(c(4, 16, 17, 23), "tool_experience", "perceived_training_value"),
+
+    make_assignment(c(5, 6), "tool_experience", "diagnostic_search_reduction"),
+    make_assignment(21, "trust_factors", "diagnostic_search_reduction"),
+    make_assignment(c(11, 27), "tool_experience", "attention_direction"),
+    make_assignment(5, "trust_factors", "attention_direction"),
+    make_assignment(6, "tool_experience", "confidence_or_reassurance"),
+
+    make_assignment(24, "tool_experience", "concordance_with_own_interpretation"),
+    make_assignment(c(1, 4, 6, 14, 24), "trust_factors", "concordance_with_own_interpretation"),
+    make_assignment(c(4, 21), "tool_experience", "observed_accuracy"),
+    make_assignment(c(2, 4, 6, 9, 21), "trust_factors", "observed_accuracy"),
+    make_assignment(c(4, 5, 7, 10, 24), "trust_factors", "manual_verification"),
+    make_assignment(c(2, 7, 9, 20, 23), "trust_factors", "model_fallibility_or_incompleteness"),
+    make_assignment(c(6, 10, 13, 24), "trust_factors", "stability_or_agreement_cue"),
+    make_assignment(11, "trust_factors", "perceived_measurement_capability"),
+    make_assignment(c(8, 15), "trust_factors", "training_data_provenance"),
+    make_assignment(c(7, 9), "trust_factors", "prior_clinical_ai_experience"),
+
+    make_assignment(c(13, 24, 25), "tool_experience", "reference_case_relevance_or_corroboration"),
+    make_assignment(c(3, 17, 18, 24, 25), "trust_factors", "reference_case_relevance_or_corroboration"),
+
+    make_assignment(c(5, 24), "trust_factors", "bounded_or_conditional_reliance"),
+    make_assignment(c(12, 16), "trust_factors", "low_expertise_drives_reliance"),
+    make_assignment(c(10, 27), "tool_experience", "judgment_influence_or_shortcut_risk"),
+    make_assignment(c(19, 24), "trust_factors", "unmodeled_clinical_or_acquisition_context")
+  )
+)
+
+coding <- unique(coding)
+coding <- coding[
+  order(coding$participant, coding$source_question, coding$code),
+  ,
+  drop = FALSE
+]
+row.names(coding) <- NULL
+
+unknown_codes <- setdiff(coding$code, codebook$code)
+if (length(unknown_codes) > 0L) {
+  stop(paste("Unknown codes:", paste(unknown_codes, collapse = ", ")))
+}
+
+response_keys <- paste(
+  responses_long$participant,
+  responses_long$source_question,
+  sep = "||"
+)
+coding_keys <- paste(coding$participant, coding$source_question, sep = "||")
+
+if (any(!coding_keys %in% response_keys)) {
+  stop("At least one assignment does not point to an existing response.")
+}
+
+response_match <- match(coding_keys, response_keys)
+coding$response_text <- responses_long$response_text[response_match]
+coding$translation_en <- responses_long$translation_en[response_match]
+coding$analysis_text <- responses_long$analysis_text[response_match]
+coding$participant_label <- sprintf("P%02d", coding$participant)
+coding$code_label <- codebook$label[match(coding$code, codebook$code)]
+coding$code_definition <- codebook$definition[match(coding$code, codebook$code)]
+
+coding <- coding[
+  ,
+  c(
+    "participant",
+    "participant_label",
+    "source_question",
+    "response_text",
+    "translation_en",
+    "analysis_text",
+    "code",
+    "code_label",
+    "code_definition"
+  )
+]
+
+cat("Validated coding assignments:", nrow(coding), "\n")
+```
+
+The table makes every interpretive assignment traceable to the original
+response.
+
+```{r}
+#| label: display-coding
+
+knitr::kable(
+  coding[
+    ,
+    c(
+      "participant_label",
+      "source_question",
+      "code_label",
+      "response_text",
+      "translation_en"
+    )
+  ],
+  col.names = c(
+    "Participant",
+    "Question",
+    "Code",
+    "Original response",
+    "English translation when applicable"
+  ),
+  caption = "Participant-level qualitative coding matrix"
+)
+```
+
+Responses that do not support a sufficiently specific semantic code are
+retained rather than forced into a theme. Generic evaluations indicate valence
+but do not identify a mechanism; similarly, a factor named without explaining
+how it shaped trust remains analytically ambiguous.
+
+```{r}
+#| label: document-uncoded-responses
+
+coded_response_keys <- unique(
+  paste(coding$participant, coding$source_question, sep = "||")
+)
+uncoded_responses <- responses_long[
+  !response_keys %in% coded_response_keys,
+  ,
+  drop = FALSE
+]
+
+uncoded_rationales <- data.frame(
+  participant = c(2, 7, 8, 12, 14, 18, 20, 26, 26, 27),
+  source_question = c(
+    rep("tool_experience", 8),
+    "trust_factors",
+    "trust_factors"
+  ),
+  exclusion_rationale = c(
+    rep(
+      "General evaluation without enough detail to identify an analytic mechanism.",
+      8
+    ),
+    "A single abstract noun does not identify the direction or basis of trust.",
+    "Age correlation is mentioned, but its relationship to trust or distrust is not explained."
+  ),
+  stringsAsFactors = FALSE
+)
+
+uncoded_keys <- paste(
+  uncoded_responses$participant,
+  uncoded_responses$source_question,
+  sep = "||"
+)
+rationale_keys <- paste(
+  uncoded_rationales$participant,
+  uncoded_rationales$source_question,
+  sep = "||"
+)
+
+if (!setequal(uncoded_keys, rationale_keys)) {
+  stop("The documented uncoded responses do not match the uncoded corpus.")
+}
+
+uncoded_responses$exclusion_rationale <- uncoded_rationales$exclusion_rationale[
+  match(uncoded_keys, rationale_keys)
+]
+
+knitr::kable(
+  uncoded_responses[
+    ,
+    c(
+      "participant_label",
+      "source_question",
+      "response_text",
+      "translation_en",
+      "exclusion_rationale"
+    )
+  ],
+  col.names = c(
+    "Participant",
+    "Question",
+    "Original response",
+    "English translation when applicable",
+    "Reason no semantic code was assigned"
+  ),
+  caption = "Non-empty responses retained without a semantic code"
+)
+```
+
+## Candidate themes
+
+A code may contribute to more than one theme. For example, manual verification
+is both a trust-calibration practice and the counterweight in the tension
+between guidance and cognitive substitution.
+
+```{r}
+#| label: define-themes
+
+theme_definitions <- data.frame(
+  theme_id = paste0("T", 1:5),
+  theme = c(
+    "Prediction as diagnostic navigation",
+    "Trust as corroboration and ongoing calibration",
+    "Guidance versus cognitive substitution",
+    "Reference cases as conditional and contested evidence",
+    "Usability, learning curve, and perceived training potential"
+  ),
+  central_idea = c(
+    "Direct predictions reorganized the task by narrowing diagnostic search and directing attention.",
+    "Trust was constructed through corroborating cues and updated in light of observed performance and known limitations.",
+    "Participants described both active verification and circumstances in which AI could exert disproportionate influence.",
+    "Reference cases supported trust when they appeared relevant or similar, but could also distract or undermine trust when they appeared mismatched.",
+    "The interface was generally learnable but contained specific friction, alongside perceived learning value."
+  ),
+  boundary = c(
+    "This describes perceived mechanisms, not logged gaze or search behavior.",
+    "The prompted trust question maps trust cues but does not estimate population prevalence.",
+    "The study does not demonstrate automation bias because displayed predictions were correct and no initial unaided judgment was recorded.",
+    "The open responses contain both corroborating and negative reference-case accounts, but cannot establish an average behavioral effect.",
+    "Educational effectiveness, retention, and transfer were not measured; only perceived potential is supported."
+  ),
+  design_implication = c(
+    "Keep support concise while preserving access to evidence behind the narrowed search space.",
+    "Expose provenance and uncertainty carefully and support manual corroboration rather than treating trust as a single score.",
+    "Consider eliciting an initial assessment or showing support on request, particularly for less experienced users.",
+    "Align corresponding ECG leads, annotate discriminating features, and explain why a case was retrieved.",
+    "Use progressive disclosure, stable axes, concise explanations, and separate training from point-of-care modes."
+  ),
+  stringsAsFactors = FALSE
+)
+
+theme_map <- rbind(
+  data.frame(
+    theme_id = "T1",
+    code = c(
+      "diagnostic_search_reduction",
+      "attention_direction",
+      "confidence_or_reassurance"
+    ),
+    stringsAsFactors = FALSE
+  ),
+  data.frame(
+    theme_id = "T2",
+    code = c(
+      "concordance_with_own_interpretation",
+      "observed_accuracy",
+      "manual_verification",
+      "model_fallibility_or_incompleteness",
+      "stability_or_agreement_cue",
+      "perceived_measurement_capability",
+      "training_data_provenance",
+      "prior_clinical_ai_experience",
+      "bounded_or_conditional_reliance",
+      "unmodeled_clinical_or_acquisition_context"
+    ),
+    stringsAsFactors = FALSE
+  ),
+  data.frame(
+    theme_id = "T3",
+    code = c(
+      "manual_verification",
+      "model_fallibility_or_incompleteness",
+      "bounded_or_conditional_reliance",
+      "low_expertise_drives_reliance",
+      "judgment_influence_or_shortcut_risk"
+    ),
+    stringsAsFactors = FALSE
+  ),
+  data.frame(
+    theme_id = "T4",
+    code = "reference_case_relevance_or_corroboration",
+    stringsAsFactors = FALSE
+  ),
+  data.frame(
+    theme_id = "T5",
+    code = c(
+      "ease_or_learnability",
+      "interface_friction",
+      "perceived_training_value"
+    ),
+    stringsAsFactors = FALSE
+  )
+)
+
+if (any(!theme_map$code %in% codebook$code)) {
+  stop("Theme map contains a code absent from the codebook.")
+}
+
+coding_theme <- merge(
+  coding,
+  theme_map,
+  by = "code",
+  all.x = FALSE,
+  all.y = FALSE,
+  sort = FALSE
+)
+coding_theme <- unique(coding_theme)
+coding_theme$theme <- theme_definitions$theme[
+  match(coding_theme$theme_id, theme_definitions$theme_id)
+]
+
+coding_theme <- coding_theme[
+  ,
+  c(
+    "participant",
+    "participant_label",
+    "source_question",
+    "response_text",
+    "translation_en",
+    "analysis_text",
+    "code",
+    "code_label",
+    "code_definition",
+    "theme_id",
+    "theme"
+  )
+]
+
+knitr::kable(
+  merge(theme_map, theme_definitions[, c("theme_id", "theme")], by = "theme_id"),
+  col.names = c("Theme ID", "Code", "Theme"),
+  caption = "Mapping from codes to candidate themes"
+)
+```
+
+## Descriptive coverage
+
+Counts refer to unique participants represented in a code or theme. They are
+used as descriptive corpus information, not as inferential tests, prevalence
+estimates, or measures of thematic importance. Counts overlap because one
+participant can contribute to several codes and themes.
+
+```{r}
+#| label: code-theme-summaries
+
+unique_code_participants <- unique(coding[, c("code", "participant")])
+
+code_n <- aggregate(
+  participant ~ code,
+  data = unique_code_participants,
+  FUN = length
+)
+names(code_n)[names(code_n) == "participant"] <- "n_participants"
+
+code_ids <- aggregate(
+  participant ~ code,
+  data = unique_code_participants,
+  FUN = format_ids
+)
+names(code_ids)[names(code_ids) == "participant"] <- "participant_ids"
+
+code_summary <- merge(codebook, code_n, by = "code", all.x = TRUE, sort = FALSE)
+code_summary <- merge(code_summary, code_ids, by = "code", all.x = TRUE, sort = FALSE)
+code_summary$n_participants[is.na(code_summary$n_participants)] <- 0L
+code_summary$participant_ids[is.na(code_summary$participant_ids)] <- ""
+code_summary$coverage_percent <- round(
+  100 * code_summary$n_participants / QUALITATIVE_N,
+  1
+)
+code_summary <- code_summary[
+  match(codebook$code, code_summary$code),
+  ,
+  drop = FALSE
+]
+
+unique_theme_participants <- unique(
+  coding_theme[, c("theme_id", "theme", "participant")]
+)
+
+theme_n <- aggregate(
+  participant ~ theme_id + theme,
+  data = unique_theme_participants,
+  FUN = length
+)
+names(theme_n)[names(theme_n) == "participant"] <- "n_participants"
+
+theme_ids <- aggregate(
+  participant ~ theme_id + theme,
+  data = unique_theme_participants,
+  FUN = format_ids
+)
+names(theme_ids)[names(theme_ids) == "participant"] <- "participant_ids"
+
+theme_summary <- merge(
+  theme_definitions,
+  theme_n,
+  by = c("theme_id", "theme"),
+  all.x = TRUE,
+  sort = FALSE
+)
+theme_summary <- merge(
+  theme_summary,
+  theme_ids,
+  by = c("theme_id", "theme"),
+  all.x = TRUE,
+  sort = FALSE
+)
+theme_summary$coverage_percent <- round(
+  100 * theme_summary$n_participants / QUALITATIVE_N,
+  1
+)
+theme_summary <- theme_summary[
+  match(theme_definitions$theme_id, theme_summary$theme_id),
+  ,
+  drop = FALSE
+]
+
+knitr::kable(
+  code_summary[
+    ,
+    c("label", "n_participants", "coverage_percent", "participant_ids")
+  ],
+  col.names = c("Code", "Participants", "Coverage (%)", "Participant IDs"),
+  caption = "Code coverage using unique participants"
+)
+```
+
+```{r}
+#| label: fig-code-coverage
+#| fig-cap: "Participant coverage of the 19 semantic codes. Counts are overlapping and descriptive."
+#| fig-width: 9
+#| fig-height: 7.5
+
+code_plot_order <- order(
+  code_summary$n_participants,
+  code_summary$label
+)
+
+old_par <- par(no.readonly = TRUE)
+par(mar = c(4.5, 15.5, 1.5, 2))
+
+dotchart(
+  code_summary$n_participants[code_plot_order],
+  labels = code_summary$label[code_plot_order],
+  xlim = c(0, max(code_summary$n_participants) + 1.2),
+  pch = 19,
+  color = "#0072B2",
+  lcolor = "#B8C2CC",
+  xlab = "Unique participants represented in code",
+  cex = 0.82
+)
+
+text(
+  x = code_summary$n_participants[code_plot_order] + 0.22,
+  y = seq_along(code_plot_order),
+  labels = code_summary$n_participants[code_plot_order],
+  pos = 4,
+  cex = 0.82
+)
+
+par(old_par)
+```
+
+### Prompt-conditioned coding patterns
+
+Because each question invited a different kind of reflection, code coverage is
+also decomposed by prompt. This helps distinguish an analytic pattern from a
+question-format effect.
+
+```{r}
+#| label: code-by-question
+
+unique_code_question_participants <- unique(
+  coding[, c("code", "source_question", "participant")]
+)
+
+code_question_counts <- aggregate(
+  participant ~ code + source_question,
+  data = unique_code_question_participants,
+  FUN = length
+)
+names(code_question_counts)[names(code_question_counts) == "participant"] <-
+  "n_participants"
+
+code_question_matrix <- matrix(
+  0L,
+  nrow = nrow(codebook),
+  ncol = 2L,
+  dimnames = list(
+    codebook$code,
+    c("tool_experience", "trust_factors")
+  )
+)
+
+matrix_rows <- match(code_question_counts$code, rownames(code_question_matrix))
+matrix_cols <- match(
+  code_question_counts$source_question,
+  colnames(code_question_matrix)
+)
+code_question_matrix[cbind(matrix_rows, matrix_cols)] <-
+  code_question_counts$n_participants
+
+code_question_summary <- data.frame(
+  code = codebook$code,
+  code_label = codebook$label,
+  tool_experience = code_question_matrix[, "tool_experience"],
+  trust_factors = code_question_matrix[, "trust_factors"],
+  total_unique_participants = code_summary$n_participants,
+  stringsAsFactors = FALSE,
+  row.names = NULL
+)
+
+knitr::kable(
+  code_question_summary[
+    ,
+    c("code_label", "tool_experience", "trust_factors", "total_unique_participants")
+  ],
+  col.names = c(
+    "Code",
+    "Tool-experience prompt",
+    "Trust prompt",
+    "Unique participants overall"
+  ),
+  caption = "Code coverage separated by open-ended question"
+)
+```
+
+```{r}
+#| label: fig-code-question-heatmap
+#| fig-cap: "Prompt-conditioned code coverage. Each cell reports the number of unique participants contributing that code within the question."
+#| fig-width: 9
+#| fig-height: 8.5
+
+display_code_matrix <- code_question_matrix[
+  rev(seq_len(nrow(code_question_matrix))),
+  ,
+  drop = FALSE
+]
+heatmap_matrix <- t(display_code_matrix)
+maximum_cell <- max(heatmap_matrix)
+heatmap_colors <- hcl.colors(maximum_cell + 1L, "Blues 3")
+
+old_par <- par(no.readonly = TRUE)
+par(mar = c(6, 17.5, 1.5, 2))
+
+image(
+  x = seq_len(ncol(display_code_matrix)),
+  y = seq_len(nrow(display_code_matrix)),
+  z = heatmap_matrix,
+  col = heatmap_colors,
+  breaks = seq(-0.5, maximum_cell + 0.5, by = 1),
+  axes = FALSE,
+  xlab = "",
+  ylab = ""
+)
+
+axis(
+  1,
+  at = 1:2,
+  labels = c("Tool experience", "Trust / distrust factors"),
+  las = 2
+)
+axis(
+  2,
+  at = seq_len(nrow(display_code_matrix)),
+  labels = rev(codebook$label),
+  las = 1,
+  cex.axis = 0.78
+)
+
+abline(v = 1.5, col = "white", lwd = 2)
+abline(
+  h = seq(1.5, nrow(display_code_matrix) - 0.5, by = 1),
+  col = "white",
+  lwd = 1
+)
+
+cell_locations <- expand.grid(
+  x = seq_len(ncol(display_code_matrix)),
+  y = seq_len(nrow(display_code_matrix))
+)
+cell_values <- as.vector(heatmap_matrix)
+
+text(
+  cell_locations$x,
+  cell_locations$y,
+  labels = cell_values,
+  col = ifelse(cell_values > maximum_cell / 2, "white", "black"),
+  font = 2
+)
+
+par(old_par)
+```
+
+The split confirms that usability, learning, and task-navigation mechanisms
+were expressed mainly in answers about the tool experience, whereas almost all
+calibration mechanisms arose in the explicitly prompted trust question. The
+reference-case code is the exception: it appears in both prompts, suggesting
+that comparison with a retrieved case crossed the boundary between general
+experience and trust formation.
+
+```{r}
+#| label: theme-summary-table
+
+knitr::kable(
+  theme_summary[
+    ,
+    c("theme_id", "theme", "n_participants", "coverage_percent", "participant_ids")
+  ],
+  col.names = c("ID", "Theme", "Participants", "Coverage (%)", "Participant IDs"),
+  caption = "Overlapping descriptive coverage of candidate themes"
+)
+```
+
+```{r}
+#| label: fig-theme-coverage
+#| fig-cap: "Participant coverage of the five candidate themes. Counts overlap and are not prevalence estimates."
+#| fig-width: 9
+#| fig-height: 5.5
+
+plot_order <- rev(seq_len(nrow(theme_summary)))
+plot_labels <- vapply(
+  theme_summary$theme,
+  function(x) paste(strwrap(x, width = 38), collapse = "\n"),
+  character(1)
+)
+
+old_par <- par(no.readonly = TRUE)
+par(mar = c(4.5, 17, 1.5, 2))
+
+bar_midpoints <- barplot(
+  theme_summary$n_participants[plot_order],
+  names.arg = plot_labels[plot_order],
+  horiz = TRUE,
+  las = 1,
+  xlim = c(0, QUALITATIVE_N + 1),
+  col = "#2C7FB8",
+  border = NA,
+  axes = FALSE,
+  xlab = "Unique participants represented in theme"
+)
+
+text(
+  x = theme_summary$n_participants[plot_order] + 0.35,
+  y = bar_midpoints,
+  labels = paste0(theme_summary$n_participants[plot_order], "/", QUALITATIVE_N),
+  adj = 0,
+  cex = 0.9
+)
+
+axis(1, at = seq(0, QUALITATIVE_N, by = 5))
+par(old_par)
+```
+
+## Relational and configurational analysis
+
+Theme counts show how broadly each idea appears, but they do not show how ideas
+combine within participants. The following analyses retain participant identity
+and examine configurations, overlaps, and contrasting accounts.
+
+### Participant–theme configurations
+
+```{r}
+#| label: participant-theme-matrix
+
+participant_theme_matrix <- matrix(
+  0L,
+  nrow = QUALITATIVE_N,
+  ncol = nrow(theme_definitions),
+  dimnames = list(
+    sprintf("P%02d", QUALITATIVE_PARTICIPANTS),
+    theme_definitions$theme_id
+  )
+)
+
+unique_memberships <- unique(
+  coding_theme[, c("participant_label", "theme_id")]
+)
+membership_rows <- match(
+  unique_memberships$participant_label,
+  rownames(participant_theme_matrix)
+)
+membership_cols <- match(
+  unique_memberships$theme_id,
+  colnames(participant_theme_matrix)
+)
+participant_theme_matrix[cbind(membership_rows, membership_cols)] <- 1L
+
+participant_theme_configuration <- data.frame(
+  participant_label = rownames(participant_theme_matrix),
+  n_themes = rowSums(participant_theme_matrix),
+  themes = apply(
+    participant_theme_matrix,
+    1,
+    function(x) paste(names(x)[x == 1L], collapse = "; ")
+  ),
+  stringsAsFactors = FALSE,
+  row.names = NULL
+)
+
+knitr::kable(
+  participant_theme_configuration,
+  col.names = c("Participant", "Number of themes", "Theme configuration"),
+  caption = "Theme configurations represented by each participant"
+)
+```
+
+```{r}
+#| label: fig-participant-theme-map
+#| fig-cap: "Participant–theme configuration map. Colored cells indicate that at least one response from the participant contributed to the theme."
+#| fig-width: 8.5
+#| fig-height: 8
+
+display_presence <- participant_theme_matrix[
+  rev(seq_len(nrow(participant_theme_matrix))),
+  ,
+  drop = FALSE
+]
+presence_image <- t(display_presence)
+
+old_par <- par(no.readonly = TRUE)
+par(mar = c(5, 5, 1.5, 2))
+
+image(
+  x = seq_len(ncol(display_presence)),
+  y = seq_len(nrow(display_presence)),
+  z = presence_image,
+  col = c("#F2F2F2", "#009E73"),
+  breaks = c(-0.5, 0.5, 1.5),
+  axes = FALSE,
+  xlab = "Candidate theme",
+  ylab = "Participant"
+)
+
+axis(1, at = 1:5, labels = theme_definitions$theme_id)
+axis(
+  2,
+  at = seq_len(nrow(display_presence)),
+  labels = rev(rownames(participant_theme_matrix)),
+  las = 1,
+  cex.axis = 0.78
+)
+abline(v = seq(1.5, 4.5, by = 1), col = "white", lwd = 1.5)
+abline(h = seq(1.5, nrow(display_presence) - 0.5, by = 1), col = "white")
+
+par(old_par)
+```
+
+The map shows that themes are not mutually exclusive participant types. Several
+participants contributed simultaneously to trust calibration and its possible
+failure modes, while others provided narrow but analytically distinct evidence
+about navigation, reference cases, or usability. P26 provided two very brief
+responses, but neither contained enough semantic detail to support a specific
+code; the zero-theme row preserves that case rather than forcing an
+interpretation.
+
+### Theme co-occurrence and similarity
+
+The co-occurrence matrix counts participants represented in two themes. Jaccard
+similarity divides this intersection by the number represented in either theme,
+thereby accounting for the different sizes of themes:
+
+\[
+J(A,B)=\frac{|A\cap B|}{|A\cup B|}.
+\]
+
+```{r}
+#| label: theme-overlap-analysis
+
+theme_intersections <- crossprod(participant_theme_matrix)
+theme_sizes <- diag(theme_intersections)
+
+theme_jaccard <- matrix(
+  0,
+  nrow = nrow(theme_intersections),
+  ncol = ncol(theme_intersections),
+  dimnames = dimnames(theme_intersections)
+)
+
+for (row_index in seq_len(nrow(theme_jaccard))) {
+  for (column_index in seq_len(ncol(theme_jaccard))) {
+    intersection <- theme_intersections[row_index, column_index]
+    union <- theme_sizes[row_index] + theme_sizes[column_index] - intersection
+    theme_jaccard[row_index, column_index] <- intersection / union
+  }
+}
+
+theme_pairs <- utils::combn(theme_definitions$theme_id, 2)
+theme_overlap_pairs <- data.frame(
+  theme_a = theme_pairs[1, ],
+  theme_b = theme_pairs[2, ],
+  shared_participants = mapply(
+    function(a, b) theme_intersections[a, b],
+    theme_pairs[1, ],
+    theme_pairs[2, ]
+  ),
+  participant_ids = mapply(
+    function(a, b) {
+      format_ids(
+        QUALITATIVE_PARTICIPANTS[
+          participant_theme_matrix[, a] == 1L &
+            participant_theme_matrix[, b] == 1L
+        ]
+      )
+    },
+    theme_pairs[1, ],
+    theme_pairs[2, ]
+  ),
+  jaccard_similarity = mapply(
+    function(a, b) theme_jaccard[a, b],
+    theme_pairs[1, ],
+    theme_pairs[2, ]
+  ),
+  stringsAsFactors = FALSE
+)
+theme_overlap_pairs$jaccard_similarity <- round(
+  theme_overlap_pairs$jaccard_similarity,
+  2
+)
+theme_overlap_pairs <- theme_overlap_pairs[
+  order(
+    -theme_overlap_pairs$jaccard_similarity,
+    -theme_overlap_pairs$shared_participants
+  ),
+  ,
+  drop = FALSE
+]
+row.names(theme_overlap_pairs) <- NULL
+
+knitr::kable(
+  theme_overlap_pairs,
+  col.names = c(
+    "Theme A",
+    "Theme B",
+    "Shared participants",
+    "Participant IDs",
+    "Jaccard similarity"
+  ),
+  digits = 2,
+  caption = "Pairwise overlap between candidate themes"
+)
+```
+
+```{r}
+#| label: fig-theme-jaccard
+#| fig-cap: "Jaccard similarity between candidate themes based on participant membership. The diagonal equals 1 by definition."
+#| fig-width: 7
+#| fig-height: 6.5
+
+display_jaccard <- theme_jaccard[
+  ,
+  rev(seq_len(ncol(theme_jaccard))),
+  drop = FALSE
+]
+jaccard_colors <- hcl.colors(101, "YlGnBu")
+
+old_par <- par(no.readonly = TRUE)
+par(mar = c(5, 5, 1.5, 2))
+
+image(
+  x = 1:5,
+  y = 1:5,
+  z = display_jaccard,
+  col = jaccard_colors,
+  breaks = seq(0, 1, length.out = 102),
+  zlim = c(0, 1),
+  axes = FALSE,
+  xlab = "Theme",
+  ylab = "Theme"
+)
+
+axis(1, at = 1:5, labels = theme_definitions$theme_id)
+axis(2, at = 1:5, labels = rev(theme_definitions$theme_id), las = 1)
+abline(v = seq(1.5, 4.5, by = 1), col = "white", lwd = 1.5)
+abline(h = seq(1.5, 4.5, by = 1), col = "white", lwd = 1.5)
+
+jaccard_locations <- expand.grid(x = 1:5, y = 1:5)
+jaccard_values <- as.vector(display_jaccard)
+text(
+  jaccard_locations$x,
+  jaccard_locations$y,
+  labels = sprintf("%.2f", jaccard_values),
+  col = ifelse(jaccard_values >= 0.45, "white", "black"),
+  font = 2,
+  cex = 0.9
+)
+
+par(old_par)
+```
+
+The strongest non-diagonal overlap is between **T2 (trust calibration)** and
+**T3 (guidance versus cognitive substitution)**: nine participants contribute
+to both, with a Jaccard similarity of 0.43. This is analytically important. The
+risk of disproportionate influence does not appear as a separate rejection of
+AI; it is embedded within accounts of monitoring, checking, and recalibrating
+trust. T1 and T2 share three participants, indicating that task navigation and
+trust calibration sometimes co-occur but are not interchangeable mechanisms.
+
+### Epistemic sources shaping trust and reliance
+
+The trust-related codes can be reorganized by the source of evidence on which a
+participant based trust, distrust, or reliance. This second analytic lens cuts
+across the five themes and distinguishes clinical corroboration from observed
+system performance, model metadata, contextual knowledge, reference-case
+comparison, and expertise-linked vulnerability.
+
+```{r}
+#| label: trust-evidence-sources
+
+trust_evidence_map <- data.frame(
+  evidence_source = c(
+    "Participant's own clinical assessment",
+    "Participant's own clinical assessment",
+    "Observed system behavior",
+    "Observed system behavior",
+    "Model or interface information",
+    "Model or interface information",
+    "Model or interface information",
+    "Prior experience or contextual knowledge",
+    "Prior experience or contextual knowledge",
+    "Retrieved-case comparison",
+    "Explicit limits on reliance",
+    "Expertise-linked vulnerability",
+    "Expertise-linked vulnerability"
+  ),
+  code = c(
+    "concordance_with_own_interpretation",
+    "manual_verification",
+    "observed_accuracy",
+    "model_fallibility_or_incompleteness",
+    "stability_or_agreement_cue",
+    "perceived_measurement_capability",
+    "training_data_provenance",
+    "prior_clinical_ai_experience",
+    "unmodeled_clinical_or_acquisition_context",
+    "reference_case_relevance_or_corroboration",
+    "bounded_or_conditional_reliance",
+    "low_expertise_drives_reliance",
+    "judgment_influence_or_shortcut_risk"
+  ),
+  stringsAsFactors = FALSE
+)
+
+evidence_coding <- merge(
+  unique(coding[, c("participant", "participant_label", "code")]),
+  trust_evidence_map,
+  by = "code",
+  all = FALSE,
+  sort = FALSE
+)
+evidence_coding$code_label <- codebook$label[
+  match(evidence_coding$code, codebook$code)
+]
+
+unique_evidence_participants <- unique(
+  evidence_coding[, c("evidence_source", "participant")]
+)
+
+evidence_n <- aggregate(
+  participant ~ evidence_source,
+  data = unique_evidence_participants,
+  FUN = length
+)
+names(evidence_n)[2] <- "n_participants"
+
+evidence_ids <- aggregate(
+  participant ~ evidence_source,
+  data = unique_evidence_participants,
+  FUN = format_ids
+)
+names(evidence_ids)[2] <- "participant_ids"
+
+evidence_codes <- aggregate(
+  code_label ~ evidence_source,
+  data = unique(evidence_coding[, c("evidence_source", "code_label")]),
+  FUN = collapse_unique
+)
+names(evidence_codes)[2] <- "contributing_codes"
+
+evidence_source_summary <- merge(
+  merge(evidence_n, evidence_ids, by = "evidence_source"),
+  evidence_codes,
+  by = "evidence_source"
+)
+evidence_source_summary <- evidence_source_summary[
+  order(-evidence_source_summary$n_participants, evidence_source_summary$evidence_source),
+  ,
+  drop = FALSE
+]
+row.names(evidence_source_summary) <- NULL
+
+knitr::kable(
+  evidence_source_summary,
+  col.names = c(
+    "Evidence source",
+    "Participants",
+    "Participant IDs",
+    "Contributing codes"
+  ),
+  caption = "Sources shaping trust, distrust, or reliance"
+)
+```
+
+```{r}
+#| label: fig-trust-evidence-sources
+#| fig-cap: "Participant coverage of the non-exclusive evidence sources shaping trust, distrust, or reliance."
+#| fig-width: 9
+#| fig-height: 5.8
+
+evidence_plot_order <- order(evidence_source_summary$n_participants)
+evidence_labels <- vapply(
+  evidence_source_summary$evidence_source,
+  function(x) paste(strwrap(x, width = 35), collapse = "\n"),
+  character(1)
+)
+evidence_colors <- hcl.colors(
+  nrow(evidence_source_summary),
+  "Dark 3"
+)
+
+old_par <- par(no.readonly = TRUE)
+par(mar = c(4.5, 15.5, 1.5, 2))
+
+evidence_midpoints <- barplot(
+  evidence_source_summary$n_participants[evidence_plot_order],
+  names.arg = evidence_labels[evidence_plot_order],
+  horiz = TRUE,
+  las = 1,
+  xlim = c(0, max(evidence_source_summary$n_participants) + 1.2),
+  col = evidence_colors[evidence_plot_order],
+  border = NA,
+  axes = FALSE,
+  xlab = "Unique participants"
+)
+axis(1, at = 0:max(evidence_source_summary$n_participants))
+text(
+  evidence_source_summary$n_participants[evidence_plot_order] + 0.22,
+  evidence_midpoints,
+  labels = evidence_source_summary$n_participants[evidence_plot_order],
+  adj = 0,
+  cex = 0.9
+)
+
+par(old_par)
+```
+
+Two sources have the broadest coverage: participants' own clinical assessment
+and observed system behavior, each represented by eight participants. This
+supports a view of trust as empirical corroboration rather than passive
+acceptance. Model/interface information and retrieved-case comparison are also
+salient (seven and six participants, respectively), but neither is the sole
+basis for trust. The
+four expertise-linked cases are
+qualitatively important despite their lower coverage because they identify a
+specific vulnerability: support may receive more weight when independent ECG
+knowledge is limited or when the prediction shapes the reasoning process.
+Two participants explicitly bounded their reliance by describing the output as
+guidance or supportive information rather than definitive evidence.
+
+### Contrasting and internally ambivalent cases
+
+The following cases resist a simple trusted/distrusted or helpful/unhelpful
+classification. They expose mechanisms and boundary conditions that are lost in
+aggregate counts.
+
+```{r}
+#| label: contrasting-cases
+
+contrast_cases <- data.frame(
+  participant = c(
+    "P05", "P09", "P10", "P18", "P19", "P24", "P25", "P27"
+  ),
+  analytic_tension = c(
+    "Guidance with retained verification",
+    "Prior distrust with local recalibration",
+    "Confidence cue with active skepticism and influence",
+    "Reference support conditional on relevance",
+    "Learnability with contextual model skepticism",
+    "Multi-cue trust with explicitly bounded reliance",
+    "Helpful prediction with a distracting comparator",
+    "Attention support with shortcut risk"
+  ),
+  evidence = c(
+    "The prediction guided the participant, who nevertheless zoomed in and manually calculated a borderline PR interval.",
+    "Hospital ECG AI was described as almost always wrong, whereas the study system was described as quite accurate.",
+    "Confidence numbers increased trust; the participant also searched for errors, double-checked manually, and reported influence on judgment.",
+    "The reference point supported trust when relevant findings were present and distrust when they were absent.",
+    "Initial interface confusion diminished with use, while anatomical and acquisition factors remained reasons for distrust.",
+    "Visible ECG features, the consistency score, and a similar reference case increased trust, while borderline measurements, noise, and conflict with personal interpretation reduced it; AI remained supportive rather than definitive.",
+    "The direct prediction helped, but the reference patient distracted and dissimilar ECGs reduced trust.",
+    "The tool helped identify essential features but also tempted the participant to omit step-by-step analysis."
+  ),
+  analytical_significance = c(
+    "Navigation did not necessarily eliminate independent checking.",
+    "Trust was updated for the local system rather than transferred wholesale from previous AI experience.",
+    "Trust, skepticism, verification, and influence can coexist within one encounter.",
+    "Retrieved examples functioned as conditional evidence, not as an intrinsically trusted explanation.",
+    "Usability acceptance and epistemic trust are separable judgments.",
+    "Trust is assembled from multiple cues and can coexist with an explicit limit on reliance.",
+    "Prediction support and case-based support can be evaluated differently within the same experience.",
+    "Attention direction and cognitive substitution can be two sides of the same mechanism."
+  ),
+  stringsAsFactors = FALSE
+)
+
+knitr::kable(
+  contrast_cases,
+  col.names = c(
+    "Participant",
+    "Analytic tension",
+    "Evidence across responses",
+    "Analytical significance"
+  ),
+  caption = "Contrasting cases and boundary conditions"
+)
+```
+
+Together, these cases sharpen the central interpretation: reliance cannot be
+placed on a single continuum from trust to distrust. Participants combined
+task guidance, clinical checking, system-level cues, prior expectations, and
+local judgments of relevance in different ways.
+
+## Exemplar quotations and source verification
+
+The quoted text remains verbatim, including grammatical and spelling errors.
+Every excerpt is checked as an exact substring of the relevant raw response;
+rendering stops if any quotation has been altered or attributed to the wrong
+participant.
+
+```{r}
+#| label: verify-quotes
+
+quotes <- data.frame(
+  theme_id = c(
+    "T1", "T1", "T1", "T1", "T1",
+    "T2", "T2", "T2", "T2", "T2", "T2",
+    "T3", "T3", "T3", "T3", "T3",
+    "T4", "T4", "T4", "T4", "T4",
+    "T5", "T5", "T5", "T5"
+  ),
+  participant = c(
+    5, 6, 11, 21, 27,
+    4, 10, 9, 23, 24, 11,
+    12, 10, 16, 27, 24,
+    13, 17, 24, 25, 25,
+    3, 9, 19, 23
+  ),
+  source_question = c(
+    "tool_experience", "tool_experience", "tool_experience", "trust_factors", "tool_experience",
+    "trust_factors", "trust_factors", "trust_factors", "trust_factors", "trust_factors", "trust_factors",
+    "trust_factors", "tool_experience", "trust_factors", "tool_experience", "trust_factors",
+    "tool_experience", "trust_factors", "trust_factors", "tool_experience", "trust_factors",
+    "tool_experience", "tool_experience", "tool_experience", "tool_experience"
+  ),
+  excerpt = c(
+    "AI prediction does narrow down the possible differentials",
+    "helped to find a direction and made more confident in finding the right diagnosis.",
+    "helpful, to get your attention to specific parts of the ECG due to the AI prediction.",
+    "shortlist the pathologies.",
+    "Es hilft, wesentliches zu erkennen",
+    "I counter checked the AI's prediction with my experience.",
+    "i double checked everything manually anyway",
+    "The AI prediction in the hospital is almost always wrong",
+    "it omitted minor details like pacemaker spikes",
+    "I therefore treated the AI as supportive information rather than definitive evidence.",
+    "specific measureable parameters that an AI can analyse very precise.",
+    "my bad knowledge of ECGs made me trust the predictions",
+    "I felt it influenced my judgement while looking at the ecg.",
+    "I trusted AI predictions as I am not very pro at reading ecg",
+    "verleitet allerdings auch dazu, keine schritt für schritt Analyse durchzuführen",
+    "I therefore treated the AI as supportive information rather than definitive evidence.",
+    "It was nice to have references to help in making a decision.",
+    "When AI predictions matched the reference ECG, I trusted it.",
+    "especially when the consistency score was high and the reference patient showed a similar pattern.",
+    "The AI diagnostic prediction helped, but the reference patient was distracting",
+    "I distrusted the AI's prediction when the patient and reference patient's ECG's were unalike.",
+    "Very easy to use, very long explanation",
+    "it's just a bit slow and the switches between the x-axis size were a bit confusing in the beginning",
+    "it was a bit confusing to start, however after getting used to it, i found it easier to use.",
+    "instructive and helped revise my branch blocks"
+  ),
+  stringsAsFactors = FALSE
+)
+
+quotes$participant_label <- sprintf("P%02d", quotes$participant)
+quotes$theme <- theme_definitions$theme[
+  match(quotes$theme_id, theme_definitions$theme_id)
+]
+
+quote_keys <- paste(quotes$participant, quotes$source_question, sep = "||")
+quote_response_index <- match(quote_keys, response_keys)
+
+if (anyNA(quote_response_index)) {
+  stop("At least one quotation does not point to an existing response.")
+}
+
+quotes$full_response <- responses_long$response_text[quote_response_index]
+quotes$translation_en <- responses_long$translation_en[quote_response_index]
+quotes$verified <- mapply(
+  function(excerpt, full_response) {
+    grepl(excerpt, full_response, fixed = TRUE)
+  },
+  quotes$excerpt,
+  quotes$full_response,
+  USE.NAMES = FALSE
+)
+
+if (any(!quotes$verified)) {
+  stop("At least one exemplar quotation failed source verification.")
+}
+
+knitr::kable(
+  quotes[
+    ,
+    c("theme_id", "participant_label", "excerpt", "translation_en", "verified")
+  ],
+  col.names = c(
+    "Theme",
+    "Participant",
+    "Verified verbatim excerpt",
+    "English translation when applicable",
+    "Verified"
+  ),
+  caption = "Exemplar quotations verified against the raw CSV"
+)
+```
+
+## Thematic results and interpretation
+
+### Theme 1 — Prediction as diagnostic navigation
+
+**Coverage:** `r theme_summary$n_participants[theme_summary$theme_id == "T1"]` of
+`r QUALITATIVE_N` qualitative contributors.
+
+Participants described direct prediction as an information-compression
+mechanism: it reduced the set of diagnostic candidates, supplied an initial
+direction, and indicated what to inspect. The value participants described was
+therefore not limited to receiving a proposed answer; the prediction also
+reorganized the diagnostic task.
+
+> “AI prediction does narrow down the possible differentials” — P05
+
+> “helped to find a direction and made more confident in finding the right diagnosis.” — P06
+
+> “helpful, to get your attention to specific parts of the ECG due to the AI prediction.” — P11
+
+> “It helps to recognize what is essential [...]” — P27, translated from German
+
+P27's account sharpens the mechanism: identifying what is essential can be
+helpful, but the same attentional compression can also discourage a systematic
+step-by-step reading. Diagnostic navigation is therefore related to, but not
+identical with, safe or appropriate reliance.
+
+**Boundary:** these are self-reported mechanisms. The study did not log visual
+attention or diagnostic-search behavior, so the data cannot establish that
+attention objectively changed.
+
+**Design implication:** concise predictions can help users manage a complex
+task, but the interface should preserve access to the evidence supporting the
+narrowed search space.
+
+### Theme 2 — Trust as corroboration and ongoing calibration
+
+**Coverage:** `r theme_summary$n_participants[theme_summary$theme_id == "T2"]` of
+`r QUALITATIVE_N` qualitative contributors.
+
+Trust was described as situated and revisable rather than as a fixed attitude.
+Participants referred to agreement with their own ECG reading, perceived
+accuracy across cases, manual checking, the displayed stability or agreement
+signal, training-data provenance, previous experience with clinical AI, and
+known contextual limitations.
+
+> “I counter checked the AI's prediction with my experience. It was 100% accurate.” — P04
+
+> “The confidence numbers helped me trust the prediction [...] i double checked everything manually anyway” — P10
+
+> “The AI prediction in the hospital is almost always wrong [...] This one was quite accurate” — P09
+
+> “it omitted minor details like pacemaker spikes” — P23
+
+> “I therefore treated the AI as supportive information rather than definitive evidence.” — P24
+
+> “specific measureable parameters that an AI can analyse very precise.” — P11
+
+The stronger interpretation is therefore not simply that participants “trusted
+AI.” They negotiated trust through several forms of corroboration, updated it
+using observed system behavior, and in some cases placed an explicit boundary
+around reliance. P24 is especially informative because trust increased when
+clinical features, the consistency display, and the reference case converged,
+but decreased with borderline measurements, noise, or conflict with personal
+interpretation. P11 contributed a different competence-based cue: the belief
+that an AI is well suited to precise analysis of measurable ECG parameters.
+
+**Boundary:** because the question directly prompted respondents to discuss
+trust, coverage counts should not be interpreted as spontaneous prevalence in a
+broader population.
+
+**Design implication:** interfaces should support verification and expose
+provenance and uncertainty carefully rather than representing trust as a single
+scalar response to a confidence-like number.
+
+### Theme 3 — Guidance versus cognitive substitution
+
+**Coverage:** `r theme_summary$n_participants[theme_summary$theme_id == "T3"]` of
+`r QUALITATIVE_N` qualitative contributors.
+
+The same efficiency that made AI helpful also created a potential
+vulnerability. Five participants described manual verification and five
+identified model errors or incomplete interpretations. Two explicitly
+connected limited ECG expertise to increased trust, while two described direct
+influence or a shortcut risk. Two participants also explicitly bounded their
+reliance, showing that verification, influence, and restraint are not mutually
+exclusive positions.
+
+> “my bad knowledge of ECGs made me trust the predictions” — P12
+
+> “I felt it influenced my judgement while looking at the ecg. Especially when deciding if measured times were pathological.” — P10
+
+> “I trusted AI predictions as I am not very pro at reading ecg” — P16
+
+> “It helps to recognize what is essential, but it also tempts one not to conduct a step-by-step analysis.” — P27, translated from German
+
+> “I therefore treated the AI as supportive information rather than definitive evidence.” — P24
+
+The defensible claim is a **perceived tension between active verification and
+cognitive substitution**. The responses suggest conditions under which support
+might displace independent reasoning, but they do not demonstrate behavioral
+overreliance or automation bias.
+
+**Design implication:** a future interface could elicit an initial assessment
+before revealing support, make predictions available on request, or adapt the
+timing of support to user expertise.
+
+### Theme 4 — Reference cases as conditional and contested evidence
+
+**Coverage:** `r theme_summary$n_participants[theme_summary$theme_id == "T4"]` of
+`r QUALITATIVE_N` qualitative contributors.
+
+Six participants discussed the relevance of a reference case or reference
+point. Their accounts were not uniformly positive: comparison supported trust
+when the ECGs appeared meaningfully similar, but mismatch or distraction could
+undermine it.
+
+> “It was nice to have references to help in making a decision.” — P13
+
+> “When AI predictions matched the reference ECG, I trusted it.” — P17
+
+> “The AI diagnostic prediction helped, but the reference patient was distracting” — P25
+
+> “I distrusted the AI's prediction when the patient and reference patient's ECG's were unalike.” — P25
+
+The open responses support a narrower claim than “reference cases were useful.”
+They functioned as **conditional and contested evidence**: useful when a
+participant could establish clinically relevant similarity, but potentially
+distracting when the relationship between cases was unclear or unconvincing.
+P24 additionally showed that the reference case was only one element in a
+larger evidential configuration that also included visible ECG features and the
+consistency score.
+
+**Boundary:** the qualitative responses alone cannot establish whether
+reference cases generally helped or burdened users.
+
+**Design implication:** the interface should align corresponding leads,
+annotate discriminating features, and state why a reference case was retrieved,
+so that similarity can become actionable evidence.
+
+### Theme 5 — Usability, learning curve, and perceived training potential
+
+**Coverage:** `r theme_summary$n_participants[theme_summary$theme_id == "T5"]` of
+`r QUALITATIVE_N` qualitative contributors.
+
+Five participants described the interface as easy or easier after
+familiarization. Four named concrete friction: explanations were long, the
+system was slow, x-axis changes were initially confusing, the first use
+required familiarization, or the reference display was distracting. Four
+responses framed the tool as supporting learning, revision, or early-career
+use.
+
+> “Very easy to use, very long explanation” — P03
+
+> “it's just a bit slow and the switches between the x-axis size were a bit confusing in the beginning” — P09
+
+> “it was a bit confusing to start, however after getting used to it, i found it easier to use.” — P19
+
+> “instructive and helped revise my branch blocks” — P23
+
+**Boundary:** these data support perceived educational potential, not improved
+learning, retention, or transfer.
+
+**Design implication:** use progressive disclosure, keep axes stable, shorten
+explanations, and distinguish a training mode from a time-sensitive
+point-of-care mode.
+
+## Integrated qualitative account
+
+The strongest cross-theme story is the contrast between answer-like compression
+and comparison-based verification. Direct predictions were described as
+narrowing the task and directing attention. Reference examples were evaluated
+more conditionally: they became meaningful when they corroborated another
+judgment, but could distract or reduce trust when perceived as dissimilar.
+Trust connected the two mechanisms. Participants neither uniformly accepted nor
+uniformly rejected AI; they used their own interpretations, observed model
+behavior, manual checks, interface cues, and beliefs about model development to
+decide how much weight to give the support.
+
+Four higher-level propositions follow from the thematic and configurational
+analyses:
+
+1. **Diagnostic compression and trust are related but distinct.** Prediction
+   could narrow the task even when participants continued to verify its output.
+2. **Calibration practices and reliance vulnerabilities coexist.** The largest
+   theme overlap is between trust calibration and guidance-versus-substitution,
+   indicating that checking behavior does not eliminate influence.
+3. **A retrieved case becomes evidence only through interpreted relevance.**
+   Participants described both corroboration and distraction; a raw comparison
+   was not self-explanatory support.
+4. **Interaction quality and epistemic trust are separable.** A system could
+   become easier to operate while still attracting skepticism about what its
+   model can represent.
+
+::: {.callout-important title="Paper-ready qualitative result"}
+Participants described direct predictions as diagnostic-navigation aids that
+narrowed possible differentials, supplied an initial direction, and focused
+attention on particular ECG features. Trust was nevertheless conditional:
+respondents cited agreement with their own interpretation, observed accuracy,
+manual verification, displayed prediction stability or model agreement,
+training-data provenance, and prior experience with clinical AI. These accounts
+also revealed a tension between verification and cognitive substitution. Some
+participants emphasized double-checking, while others explicitly linked limited
+ECG knowledge to increased reliance or reported that AI influenced diagnostic
+thresholds or tempted them to omit a step-by-step analysis. Reference cases
+were described as conditional and contested evidence: similarity could support
+trust, while perceived mismatch or distraction could undermine it. Finally,
+participants
+identified specific interface friction, including lengthy explanations,
+slowness, changing axes, and an initial learning curve.
+:::
+
+## Claims and evidential boundaries {.unnumbered}
+
+| Supported by the qualitative data | Not supported by the qualitative data |
+|---|---|
+| Predictions were perceived as narrowing diagnostic search and directing attention. | The study demonstrated automation bias or behavioral overreliance. |
+| Trust was described as calibrated through several clinical, experiential, and interface cues. | The tool caused participants to abandon step-by-step ECG analysis. |
+| Some responses reveal a tension between active verification, bounded reliance, and possible cognitive substitution. | Reports of shortcut risk establish that participants actually skipped required reasoning steps. |
+| Reference cases sometimes corroborated trust, while perceived mismatch or distraction could undermine it. | Reference cases are generally ineffective, burdensome, or helpful. |
+| Concrete usability friction and perceived training potential were present. | The tool improved learning, retention, or transfer. |
+| Themes organize this small prompted corpus. | The themes reached saturation or represent population prevalence. |
+
+## Export reproducibility outputs {.unnumbered}
+
+The following block writes analysis outputs to
+`qualitative_analysis_outputs`. It does not alter the original survey.
+
+```{r}
+#| label: export-reproducibility-outputs
+
+participant_code_map <- aggregate(
+  code ~ participant + participant_label,
+  data = unique(coding[, c("participant", "participant_label", "code")]),
+  FUN = collapse_unique
+)
+
+participant_theme_map <- aggregate(
+  theme ~ participant + participant_label,
+  data = unique(coding_theme[, c("participant", "participant_label", "theme")]),
+  FUN = collapse_unique
+)
+
+participant_summary <- aggregate(
+  response_available ~ participant + participant_label,
+  data = responses_long_all,
+  FUN = sum
+)
+names(participant_summary)[names(participant_summary) == "response_available"] <-
+  "available_responses"
+participant_summary$included_in_qualitative_analysis <-
+  participant_summary$participant %in% QUALITATIVE_PARTICIPANTS
+
+participant_summary <- merge(
+  participant_summary,
+  participant_code_map,
+  by = c("participant", "participant_label"),
+  all.x = TRUE,
+  sort = TRUE
+)
+participant_summary <- merge(
+  participant_summary,
+  participant_theme_map,
+  by = c("participant", "participant_label"),
+  all.x = TRUE,
+  sort = TRUE
+)
+participant_summary$code[is.na(participant_summary$code)] <- ""
+participant_summary$theme[is.na(participant_summary$theme)] <- ""
+
+missing_responses <- responses_long_all[
+  !responses_long_all$response_available,
+  ,
+  drop = FALSE
+]
+
+participant_theme_matrix_export <- data.frame(
+  participant_label = rownames(participant_theme_matrix),
+  participant_theme_matrix,
+  check.names = FALSE,
+  row.names = NULL
+)
+theme_intersections_export <- data.frame(
+  theme_id = rownames(theme_intersections),
+  theme_intersections,
+  check.names = FALSE,
+  row.names = NULL
+)
+theme_jaccard_export <- data.frame(
+  theme_id = rownames(theme_jaccard),
+  round(theme_jaccard, 4),
+  check.names = FALSE,
+  row.names = NULL
+)
+
+write_utf8_csv(
+  responses_long_all,
+  file.path(output_dir, "qualitative_responses_long_all.csv")
+)
+write_utf8_csv(
+  responses_long,
+  file.path(output_dir, "qualitative_responses_long.csv")
+)
+write_utf8_csv(
+  missing_responses,
+  file.path(output_dir, "qualitative_missing_responses.csv")
+)
+write_utf8_csv(
+  codebook,
+  file.path(output_dir, "qualitative_codebook.csv")
+)
+write_utf8_csv(
+  coding,
+  file.path(output_dir, "qualitative_coding_assignments.csv")
+)
+write_utf8_csv(
+  coding_theme,
+  file.path(output_dir, "qualitative_coding_with_themes.csv")
+)
+write_utf8_csv(
+  code_summary,
+  file.path(output_dir, "qualitative_code_summary.csv")
+)
+write_utf8_csv(
+  theme_definitions,
+  file.path(output_dir, "qualitative_theme_definitions.csv")
+)
+write_utf8_csv(
+  theme_map,
+  file.path(output_dir, "qualitative_theme_map.csv")
+)
+write_utf8_csv(
+  theme_summary,
+  file.path(output_dir, "qualitative_theme_summary.csv")
+)
+write_utf8_csv(
+  quotes,
+  file.path(output_dir, "qualitative_exemplar_quotes.csv")
+)
+write_utf8_csv(
+  uncoded_responses,
+  file.path(output_dir, "qualitative_uncoded_responses.csv")
+)
+write_utf8_csv(
+  participant_summary,
+  file.path(output_dir, "qualitative_participant_summary.csv")
+)
+write_utf8_csv(
+  code_question_summary,
+  file.path(output_dir, "qualitative_code_by_question.csv")
+)
+write_utf8_csv(
+  participant_theme_configuration,
+  file.path(output_dir, "qualitative_participant_theme_configuration.csv")
+)
+write_utf8_csv(
+  participant_theme_matrix_export,
+  file.path(output_dir, "qualitative_participant_theme_matrix.csv")
+)
+write_utf8_csv(
+  theme_intersections_export,
+  file.path(output_dir, "qualitative_theme_intersections.csv")
+)
+write_utf8_csv(
+  theme_jaccard_export,
+  file.path(output_dir, "qualitative_theme_jaccard.csv")
+)
+write_utf8_csv(
+  theme_overlap_pairs,
+  file.path(output_dir, "qualitative_theme_overlap_pairs.csv")
+)
+write_utf8_csv(
+  evidence_source_summary,
+  file.path(output_dir, "qualitative_trust_evidence_sources.csv")
+)
+write_utf8_csv(
+  contrast_cases,
+  file.path(output_dir, "qualitative_contrasting_cases.csv")
+)
+
+exported_files <- c(
+  "qualitative_responses_long_all.csv",
+  "qualitative_responses_long.csv",
+  "qualitative_missing_responses.csv",
+  "qualitative_codebook.csv",
+  "qualitative_coding_assignments.csv",
+  "qualitative_coding_with_themes.csv",
+  "qualitative_code_summary.csv",
+  "qualitative_theme_definitions.csv",
+  "qualitative_theme_map.csv",
+  "qualitative_theme_summary.csv",
+  "qualitative_exemplar_quotes.csv",
+  "qualitative_uncoded_responses.csv",
+  "qualitative_participant_summary.csv",
+  "qualitative_code_by_question.csv",
+  "qualitative_participant_theme_configuration.csv",
+  "qualitative_participant_theme_matrix.csv",
+  "qualitative_theme_intersections.csv",
+  "qualitative_theme_jaccard.csv",
+  "qualitative_theme_overlap_pairs.csv",
+  "qualitative_trust_evidence_sources.csv",
+  "qualitative_contrasting_cases.csv"
+)
+
+data.frame(exported_file = exported_files, stringsAsFactors = FALSE) |>
+  knitr::kable(caption = "Reproducibility outputs created by this notebook")
+```

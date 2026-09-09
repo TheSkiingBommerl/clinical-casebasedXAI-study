@@ -6,7 +6,7 @@ import dotenv
 import pandas as pd
 import streamlit as st
 from streamlit_sortables import sort_items
-from clinical_friction.helpers.login_bypass import is_bypassed
+from AI_diagnostic_support.helpers.login_bypass import is_bypassed
 
 dotenv.load_dotenv()
 

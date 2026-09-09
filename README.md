@@ -1,7 +1,5 @@
 # Understanding AI Support for ECG Interpretation: A Formative Comparison of Direct Predictions and Case-Based Explanations
 
-- Placeholder: Study describtion
-
 ## Installation
 
 ### Setting up the environment
@@ -26,45 +24,39 @@ source .venv/bin/activate
 #### 1. Install PostgreSQL
 This project requires a working installation of [PostgreSQL](https://www.postgresql.org/download/).
 
-<details><summary><b>Installation instructions</b></summary>
+<details>
+  <summary><b>Installation instructions</b></summary>
 
-_Windows_
-``` cmd
-winget install PostgreSQL.PostgreSQL.18
-```
+  <p><em>Windows</em></p>
+  <pre><code class="language-cmd">winget install PostgreSQL.PostgreSQL.18</code></pre>
 
-_Debian - Ubuntu_
-``` cmd
-sudo apt install postgresql
-```
+  <p><em>Debian - Ubuntu</em></p>
+  <pre><code class="language-cmd">sudo apt install postgresql</code></pre>
 
-_MacOS_
-``` zsh
-brew install postgresql@18
-```signals
-
+  <p><em>MacOS</em></p>
+  <pre><code class="language-zsh">brew install postgresql@18</code></pre>
 </details>
 
 #### 2. Create the database
 
 First, create a database (the name is arbitrary):
 ``` bash
-createdb clinicalfriction
+createdb AIdiagnosticsupport
 ```
 
 Ensure its name is listed in the `.env` file under the `DB_NAME` key:
 
 ```.env
-DB_NAME=clinicalfriction
+DB_NAME=AIdiagnosticsupport
 ```
 
 #### 3. Initialize the database
 
 Open a terminal and activate the virtual environment.
-Then, run `clinical-friction-init-db` to download the datasets + model and add the necessary tables to the database.
+Then, run `AI-diagnostic-support-init-db` to download the datasets + model and add the necessary tables to the database.
 
 The initialization script downloads the following datasets and models:
-- **CODE-15%** (from [Zenedo](https://zenodo.org/records/3765780/)): _ a large scale annotated dataset of 12-lead ECGs_
+- **CODE-test** (from [Zenedo](https://zenodo.org/records/3765780/)): _ a large scale annotated dataset of 12-lead ECGs_
 - **PTB-XL** (from [PhysioNet](https://physionet.org/content/ptb-xl/1.0.3/)): _a large publicly available electrocardiography dataset_
 - **ECG-FM finetuned on MIMIC IV** (From [HuggingFace](https://huggingface.co/wanglab/ecg-fm/tree/main)): _a foundation model for electrocardogram (ECG) analysis_
 - **Automatic Diagnosis of the 12-Lead ECG** (from [Zenedo](Automatic Diagnosis of the 12-Lead {{ECG}})): _Automatic diagnosis of the 12-lead ECG using a deep neural network_
@@ -77,7 +69,7 @@ source .venv/bin/activate
 .venv\Scripts\activate.bat
 
 # Download datasets (if not already downloaded) and populate the tables
-clinical-friction-init-db
+AI-diagnostic-support-init-db
 ```
 
 ### Initializing the experiments
@@ -88,14 +80,14 @@ The necessary tables and files for each of the two experiments must be generated
 
 ``` bash
 # In the activated virtual environment, run:
-clinical-friction-init-similarity
+AI-diagnostic-support-init-similarity
 ```
 
 #### Initialize the decision support experiment
 
 ``` bash
 # In the activated virtual environment, run:
-clinical-friction-init-support
+AI-diagnostic-support-init-support
 ```
 
 ## Hosting the website
@@ -122,40 +114,50 @@ export CF_BYPASS_LOGIN=participant_0_1
 
 The hosted tool will recognize you as this participant.
 
+# Study Description
 
-### Experiment 1 - Retrieval Calibration as Design Rationale
-To choose a fitting ... three similarity methods were ranked by medical professionals.
+## Similarity Comparison - Retrieval Calibration as Design Rationale
+Check if any of the three similarity measures clearly misaligned with human similarity perception. 
 
 The methods compared were: 
 - Dynamic Time Warping (DTW)
-- In-domain embedding similarity
-- Out-of-domain embedding similarity
+- Embedding similarity of the A-ECG-D model
+- Embedding similarity of the ECG-FM model
 
-Data Used: 
-- CODE-test: Follow the instructions at [Automatic ECG Diagnosis](https://github.com/antonior92/automatic-ecg-diagnosis) to download them.
+**Data Used:** 
+- CODE-test
 
-Data preprocessing:
-- ECG filtering: See [folder](signal_filtering).
+**Models Used:**
+- [Automatic ECG Diagnosis](https://github.com/antonior92/automatic-ecg-diagnosis)
+- [ECG FM](https://github.com/bowang-lab/ecg-fm)
 
-Models Used:
-- [Automatic ECG Diagnosis](https://github.com/antonior92/automatic-ecg-diagnosis): Follow this [instructions](automatic-ecg-diagnosis/README.md)
-- [ECG FM](): Follow this [instructions](ecg-fm/README.md)
+**Embedding extraction:** See folder [automatic_ecg_diagnosis](src/AI_diagnostic_support/automatic_ecg_diagnosis) and [ecg_embeddings](src/AI_diagnostic_support/__init__.pyecg_embeddings)
 
-Similarity measurement:
-...
+**Similarity measurement:** See folder [similarity_measure](src/AI_diagnostic_support/similarity_measure)
 
-Interface:
-A website was created to present the ECG signals to the medical professianals. The code for the website can be foudn here: [Similarity Comparison](website/similarity_comparison).
+**Data preprocessing** (before displayed on website)**:**
+- ECG filtering: See [signal_filtering](src/AI_diagnostic_support/signal_filtering)
 
-### Experiment 2 - Diagnostic Decision-Support Study
-Introduction ...
+**Interface:**
+A website was created to present the ECG signals to the medical professionals. The code for the website can be found here: [Similarity Comparison](website/similarity_comparison).
 
-Data Used:
+**Analysis:** See folder [statistics/similarity_comparison](statistics/similarity_comparison)
+
+## Decision Support Tool - Diagnostic Decision-Support Study
+Clinician-facing web prototype for a simulated multi-label ECG interpretation task, comparing direct AI predictions and retrieved case examples, presented individually and together, against a no-AI baseline.
+
+**Data Used:**
 - [PTB-XL](https://physionet.org/content/ptb-xl/1.0.3/)
 
-Data preprocessing:
-- Dataset filtering: See file [filter_ptbxl_datafile](database\transform_and_load\ptb\data_processing\filter_ptbxl_datafile)
-- ECG filtering: See folder [signal_filtering](signal_filtering).
-
-Models Used:
+**Models Used:**
 - [Automatic ECG Diagnosis](https://github.com/antonior92/automatic-ecg-diagnosis): Follow this [instructions](automatic-ecg-diagnosis/README.md)
+
+**Data preprocessing** (before displayed on website)**:**
+- Dataset filtering: See file [filter_ptbxl_datafile](src/AI_diagnostic_support/database/transform_and_load/ptb/data_processing/filter_ptbxl_datafile)
+- ECG filtering: See folder [signal_filtering](src/AI_diagnostic_support/signal_filtering).
+
+**Interface:**
+On the website medical professionals diagnosed 20 ECG cases, five per configuration, and then completed a questionnaire.
+The code for the website can be found here: [Decision Support Tool](website/decision_support_tool).
+
+**Analysis:** See folder [statistics/decision_support_tool](statistics/decision_support_tool)

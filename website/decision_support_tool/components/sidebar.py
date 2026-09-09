@@ -8,7 +8,7 @@ from components.diagnosis import get_diagnosed_patients
 from components.questionnaire import disable_questionnaire, safety_check_questionnaire
 from components.log import patient_logger
 import pandas as pd
-from clinical_friction.helpers.login_bypass import is_bypassed
+from AI_diagnostic_support.helpers.login_bypass import is_bypassed
 from pathlib import Path
 import dotenv
 
