@@ -56,6 +56,7 @@ def main():
         filename="ptb_predictions"
     )
 
+    logger.info("Adding PTB-XL predictions to database...")
     add_ptbxl_dnn(support_dir / "ptb_predictions.csv")
 
     logger.info("Running ecg-automatic-diagnosis embedding model...")
@@ -78,6 +79,12 @@ def main():
         for case in tqdm(range(20), total=20, desc=bardesc):
             data = load_case(tool_dir, dataset, case, prerender = True)
             prerender_all(data["ecg"], data["ecg_ref"], dataset, case, plot_dir)
+
+    # Create a results folder
+    results_dir = Path(args.dir) / "results" / "clinical_decision_support"
+    results_dir.mkdir(exist_ok=True, parents=True)
+
+    logger.info("All done!")
 
 if __name__ == "__main__":
     main()

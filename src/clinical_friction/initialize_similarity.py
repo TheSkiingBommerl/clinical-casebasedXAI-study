@@ -70,6 +70,9 @@ def run_embeddings(data_dir: Path, device: str, db_batch_size: int):
     tool_simil_dir.mkdir(exist_ok=True, parents=True)
     build_save_table(samples, simil_dir, tool_simil_dir)
 
+    # Create a results folder
+    results_dir = data_dir / "results" / "similarity_comparison"
+    results_dir.mkdir(exist_ok=True, parents=True)
     logger.info("Done!")
 
 
