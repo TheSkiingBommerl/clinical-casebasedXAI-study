@@ -8,7 +8,7 @@ from components.diagnosis import get_diagnosed_patients
 from components.questionnaire import disable_questionnaire, safety_check_questionnaire
 from components.log import patient_logger
 import pandas as pd
-
+from clinical_friction.helpers.login_bypass import is_bypassed
 from pathlib import Path
 import dotenv
 
@@ -20,7 +20,7 @@ for var in required_vars:
     if var not in os.environ:
         raise RuntimeError(f"Variable {var} not found in environment variables!")
 
-root = Path(os.environ["FLO_RESULTS"]) / "results"
+root = Path(os.environ["CF_DATA_DIR"]) / "results" / "clinical_decision_support"
 root.mkdir(exist_ok=True, parents=True)
 
 def init_sidebar_state():
@@ -101,7 +101,11 @@ def sidebar(patient_keys):
         </style>
         """, unsafe_allow_html=True)
 
-    user = st.user.get("preferred_username")
+    user_bypass = is_bypassed()
+    if user_bypass is None:
+        user = st.user.get("preferred_username")
+    else:
+        user = user_bypass
     logger = st.session_state.logger
 
     # ── Information ───────────────────────────────────

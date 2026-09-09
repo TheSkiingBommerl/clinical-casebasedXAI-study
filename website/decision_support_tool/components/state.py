@@ -3,7 +3,7 @@ import pandas as pd
 from pathlib import Path
 import os
 
-root = Path(os.environ["FLO_RESULTS"]) / "results"
+root = Path(os.environ["CF_DATA_DIR"]) / "results" / "clinical_decision_support"
 
 def get_resume_state(user):
 
@@ -11,18 +11,16 @@ def get_resume_state(user):
 
     if not os.path.exists(progress_csv):
         return "start"
-    
+
     df = pd.read_csv(progress_csv)
     if df.empty:
         return "start"
-    
+
     status = str(df["status"].iloc[-1])
 
     if status == "in_progress":
         return "main"
-    
+
 
     if status == "done":
         return "submitted"
-
-

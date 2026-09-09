@@ -18,30 +18,41 @@ import pandas as pd
 import datetime
 from loguru import logger
 import time
+from clinical_friction.helpers.login_bypass import is_bypassed
 
 dotenv.load_dotenv()
 
-required_vars = ["FLOCHALLENGE", "FLO_RESULTS", "FLO_FLASK_BASE"]
+required_vars = ["FLOCHALLENGE", "CF_DATA_DIR", "FLO_FLASK_BASE"]
 
 for var in required_vars:
     if var not in os.environ:
         raise RuntimeError(f"Variable {var} not found in environment variables!")
 
-root = Path(os.environ["FLO_RESULTS"]) / "results"
+root = Path(os.environ["CF_DATA_DIR"]) / "results" /  "clinical_decision_support"
 root.mkdir(exist_ok=True, parents=True)
 
+user_bypass = is_bypassed()
 
+try:
+    is_logged_in = st.user.is_logged_in
+except AttributeError:
+    is_logged_in = False
 
 @st.cache_data
 def get_data(user, index: int) -> dict:
-    return load_case(user, index)
+    data_path = Path(os.getenv("CF_DATA_DIR")) / "website" / "clinical_decision_support"
+    print("Is data:", data_path.exists())
+    return load_case(data_path, user, index)
 
 # Heart Emoij from: https://emojipedia.org/anatomical-heart
 st.set_page_config(
     page_title="ECG Viewer", page_icon="🫀", layout="wide", initial_sidebar_state="expanded"
 )
 
-if not st.user.is_logged_in:
+
+
+print(user_bypass)
+if user_bypass is None and not is_logged_in:
     st.markdown(
         """
         <style>
@@ -64,8 +75,11 @@ if not st.user.is_logged_in:
         st.login()
     st.stop()
 
-if st.user.is_logged_in:
-    user = st.user.get("preferred_username")
+if user_bypass is not None or is_logged_in:
+    if user_bypass is not None:
+        user = user_bypass
+    else:
+        user = st.user.get("preferred_username")
     logger = patient_logger(root, str(user))
     st.session_state["logger"] = logger
 
@@ -147,7 +161,7 @@ if st.user.is_logged_in:
 
         dataset = user.split("_")[-1]
 
-        folder = Path(f"data/{dataset}")
+        folder =  data_path = Path(os.getenv("CF_DATA_DIR")) / "website" / "clinical_decision_support" / dataset
         patient_count = len(list(folder.glob("*.parquet")))
 
         patients = {}

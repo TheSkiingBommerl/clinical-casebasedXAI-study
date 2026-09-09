@@ -13,7 +13,7 @@ for var in required_vars:
     if var not in os.environ:
         raise RuntimeError(f"Variable {var} not found in environment variables!")
 
-root = Path(os.environ["FLO_RESULTS"]) / "flags"
+root = Path(os.environ["CF_DATA_DIR"]) / "results" /  "clinical_decision_support" / "flags"
 root.mkdir(exist_ok=True, parents=True)
 
 def load_flags(user):
