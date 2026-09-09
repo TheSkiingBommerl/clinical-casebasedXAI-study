@@ -1,6 +1,6 @@
 """
 Filter ECG signals. This code filters the ECG signals from the filtered PTB-XL dataset.
-When adjusted, it can also be used for Code-15 but keep in mind to also adjust the sampling frequancy in filters.py and the powerline interferance Hz in pipeline.py
+When adjusted, it can also be used for Code-test but keep in mind to also adjust the sampling frequancy in filters.py and the powerline interferance Hz in pipeline.py
 """
 
 from signal_filtering.pipeline import filter_pipeline
