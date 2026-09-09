@@ -12,7 +12,7 @@ def con():
             <b>Study Arm 2:</b> diagnosis based on patient data alongside the reference patient. <br>
             <b>Study Arm 3:</b> diagnosis based on patient data together with the AI prediction and the reference patient.
         </div>"""
-    
+
     st.markdown(f'<p style="font-size: 20px;">{text}</p>', unsafe_allow_html=True)
 
 def style(Question):
@@ -26,10 +26,28 @@ def disable_questionnaire(root, user, patient_count):
         if not df.empty:
             saved_patients = set(df["Patient"].astype(int).unique())
             expected_patients = set(range(patient_count))
-            all_saved = expected_patients.issubset(saved_patients)
 
-            # TODO: add that if diagnosis was selected and disselected that it will stay disabled (entry is there but all diagnosises are False)
-            
+            all_saved = expected_patients.issubset(saved_patients)
+            if all_saved:
+                return False
+    return True
+
+def safety_check_questionnaire(root, user, patient_count):
+
+    diagnosis_csv = root / user / f"diagnosis_{user}.csv"
+    if os.path.exists(diagnosis_csv):
+        df = pd.read_csv(diagnosis_csv)
+        if not df.empty:
+            saved_patients = set(df["Patient"].astype(int).unique())
+            expected_patients = set(range(patient_count))
+
+            all_saved = expected_patients.issubset(saved_patients) and (
+                df.groupby("Patient")["Selected"]
+                .any()
+                .reindex(range(patient_count), fill_value=False)
+                .all()
+            )
+
             if all_saved:
                 return False
     return True
@@ -39,7 +57,7 @@ def questionnaire():
     st.write("")
     st.subheader("General")
     survey = ss.StreamlitSurvey()
-    
+
     # What was the subjective experience of junior clinicians using the tool and which configurations do they prefer?
     col_1, col_2 = st.columns([3,2])
     with col_1:
@@ -59,7 +77,7 @@ def questionnaire():
         style(question8)
         _, col_middle, _ = st.columns([1,3,1])
         with col_middle:
-            answer8 = survey.segmented_control(question3, options=["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"], label_visibility="collapsed", id="Q8")
+            answer8 = survey.segmented_control(question8, options=["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"], label_visibility="collapsed", id="Q8")
         st.write("")
         question9 = "How would you rate the difficulty of the task?"
         style(question9)
@@ -67,9 +85,9 @@ def questionnaire():
         st.write("")
         question10 = "How often do you encounter/work with ECGs in your daily life?"
         style(question10)
-        answer10 = survey.segmented_control(question9, options=["Several times per week", "Several times per month", "Several times per year", "I used to encounter ECGs frequently, but not anymore", "Only a few times throughout my studies and career"], label_visibility="collapsed", id="Q10")
+        answer10 = survey.segmented_control(question10, options=["Several times per week", "Several times per month", "Several times per year", "I used to encounter ECGs frequently, but not anymore", "Only a few times throughout my studies and career"], label_visibility="collapsed", id="Q10")
 
-        
+
         st.subheader("AI Prediction")
         question4 = "I trusted the AI prediction:"
         style(question4)
@@ -80,7 +98,7 @@ def questionnaire():
         question5 = "What factors made you trust or distrust the AI's prediction?"
         style(question5)
         answer5 = survey.text_area(question5, label_visibility="collapsed", id="Q5")
-        
+
         st.subheader("Reference patient")
         question6 = "The reference patient was helpful in guiding my diagnostic decision:"
         style(question6)
@@ -100,7 +118,7 @@ def questionnaire():
         with col_middle:
             answer11 = survey.segmented_control(question11, options=["AI prediction", "Reference patient", "Both", "Neither"], label_visibility="collapsed", id="Q11")
 
-        
+
     with col_2:
         con()
 

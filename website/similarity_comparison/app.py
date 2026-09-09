@@ -11,11 +11,11 @@ from components.ranking import ranking_section
 from components.recorder import recorder_button, stop_recording
 from components.signal_comparison import comparison_per_lead, display_summary
 from components.state import get_resume_state
-
+from clinical_friction.helpers.login_bypass import is_bypassed
 
 dotenv.load_dotenv()
 
-required_vars = ["FLOCHALLENGE", "FLO_RESULTS", "FLO_FLASK_BASE"]
+required_vars = ["FLOCHALLENGE", "CF_DATA_DIR", "FLO_FLASK_BASE"]
 
 for var in required_vars:
     if var not in os.environ:
@@ -26,10 +26,17 @@ st.set_page_config(
     page_title="ECG Viewer", page_icon="🫀", layout="wide", initial_sidebar_state="collapsed"
 )
 
-root = Path(os.environ["FLO_RESULTS"]) / "results"
+root = Path(os.environ["CF_DATA_DIR"]) / "results" /  "similarity_comparison"
 root.mkdir(exist_ok=True, parents=True)
 
-if not st.user.is_logged_in:
+user_bypass = is_bypassed()
+
+try:
+    is_logged_in = st.user.is_logged_in
+except AttributeError:
+    is_logged_in = False
+
+if user_bypass is None and not is_logged_in:
     st.markdown(
         """
         <style>
@@ -52,9 +59,12 @@ if not st.user.is_logged_in:
         st.login()
     st.stop()
 
-if st.user.is_logged_in:
-    user = st.user.get("preferred_username")
-    
+if user_bypass is not None or is_logged_in:
+    if user_bypass is not None:
+        user = user_bypass
+    else:
+        user = st.user.get("preferred_username")
+
     idxes = list(range(24))
 
     if "page" not in st.session_state:
@@ -82,11 +92,11 @@ if st.user.is_logged_in:
         st.markdown(f'<div style="font-size: 20px;">{text_background}</div>', unsafe_allow_html=True)
         st.write("")
         st.header("Task Explanation")
-        text_explanation = """For the experiment, the original signal and its comparisons are grouped by their 12 leads (DI - V6). Each lead is wrapped within an expender that can be collapsed for better overview. 
-                                The compact version of the expender shows you all 4 signals for each lead at the same time, if you wanna see the signals in more detail enable the "Detailed View" toggle on the top left. This will span each signal over the whole width of the screen.  
+        text_explanation = """For the experiment, the original signal and its comparisons are grouped by their 12 leads (DI - V6). Each lead is wrapped within an expender that can be collapsed for better overview.
+                                The compact version of the expender shows you all 4 signals for each lead at the same time, if you wanna see the signals in more detail enable the "Detailed View" toggle on the top left. This will span each signal over the whole width of the screen.
                                 <b> Your task will be to rank which of the three comparison signals is most similar to the original signal. </b>
                                 After every expender you can indicate via buttons which of the 3 comparison signals was most similar to the original signal.
-                                At the bottom of the screen, you can use the “Refresh Summary” button to calculate how often each comparison signal was selected as the most similar match for a lead. 
+                                At the bottom of the screen, you can use the “Refresh Summary” button to calculate how often each comparison signal was selected as the most similar match for a lead.
                                 This is only meant as a helpful guide, so you do not have to use it.
                                 You will also find a ranking panel at the bottom where you need to order the comparison signals based on how similar they are to the original signal. Once you are satisfied with your ranking, click the "Save" button.
                                 To proceed to the next example, click the "Next" button on the right. In the bottom-left corner, you can track how many ECGs you have completed. In total, you will evaluate 24 ECGs.
@@ -102,11 +112,11 @@ if st.user.is_logged_in:
                             No personal data will be collected, and all data will be handled confidentially."""
         st.markdown(f'<p style="font-size: 20px;">{text_privacy}</p>', unsafe_allow_html=True)
 
-        
+
         recorder_button(user)
 
         st.header("Level of expertise")
-        
+
         st.markdown(
                 "<p style='font-size: 20px;'>What is your current position?</p>",
                 unsafe_allow_html=True,
@@ -124,7 +134,7 @@ if st.user.is_logged_in:
             }
         </style>
         """, unsafe_allow_html=True)
-        
+
 
         col1, _, col3 = st.columns([6, 1, 1])
 
@@ -133,7 +143,7 @@ if st.user.is_logged_in:
 
             consent_text = "I consent to the collection, use, and storage of data generated during this study, including my self-reported level of expertise, my responses to the signal comparison tasks, and, where applicable, screen recordings captured during the experiment. The findings derived from the collected data may be used in a master's thesis and in publications resulting from this research."
             agree = st.checkbox(f'{consent_text}')
-            
+
 
         with col3:
            # <div style='margin-top: 4px;'></div>
@@ -161,7 +171,7 @@ if st.user.is_logged_in:
 
     # Comparison Tool
     if st.session_state.page == "main":
-        
+
         if st.session_state.get("scroll_to_top"):
             # this component was generated by Sonnet 4.6
             components.html(
@@ -185,7 +195,7 @@ if st.user.is_logged_in:
             st.session_state.ranking = ["Comparison 1", "Comparison 2", "Comparison 3"]
         if "ranking_saved" not in st.session_state:
             st.session_state.ranking_saved = False
-        
+
         LEADS = ["DI", "DII", "DIII", "AVR", "AVL", "AVF", "V1", "V2", "V3", "V4", "V5", "V6"]
         for lead in LEADS:
             if f"saved_{lead}" not in st.session_state:

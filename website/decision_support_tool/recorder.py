@@ -36,7 +36,7 @@ def upload():
 
     chunk = int(request.args.get("chunk", 0))
     ext = request.args.get("ext", "webm")  # client sends ext
-    root = Path(os.environ["FLO_RESULTS"])
+    root = Path(os.environ["CF_DATA_DIR"]) / "results" /  "clinical_decision_support"
     folder = root / "recordings" / user / "chunks"
     folder.mkdir(exist_ok=True, parents=True)
 
@@ -53,7 +53,7 @@ def stop():
 
     user = request.args.get("user", "unknown").replace("@", "_").replace(".", "_")
 
-    root = Path(os.environ["FLO_RESULTS"])
+    root = Path(os.environ["CF_DATA_DIR"]) / "results" /  "clinical_decision_support"
     folder = root / "recordings" / user / "chunks"
 
     now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")

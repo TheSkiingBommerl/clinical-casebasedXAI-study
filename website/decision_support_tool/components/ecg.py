@@ -1,11 +1,12 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import os
+from pathlib import Path
+from clinical_friction.helpers.login_bypass import is_bypassed
 
 LEAD_NAMES = ["DI", "DII", "DIII", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"]
 CACHE_DIR  = "data/cached_plots"
 
-# The spinner html was created by Sonnet 4.6
 SPINNER_HTML = """
 <div id="ecg-loader" style="
     display:flex; align-items:center; justify-content:center; gap:10px; padding:20px;
@@ -32,10 +33,15 @@ def load_lead_html(path: str) -> str:
 
 
 def get_lead_path(ecg_id: str, i: int) -> str:
-    user    = st.user.get("preferred_username")
+    user_bypass = is_bypassed()
+    if user_bypass is None:
+        user = st.user.get("preferred_username")
+    else:
+        user = user_bypass
     dataset = user.split("_")[-1]
     bubu    = st.session_state.patient_index
-    return f"{CACHE_DIR}/{dataset}/{bubu}/{ecg_id}/lead_{i}.html"
+    cached_path = Path(os.getenv("CF_DATA_DIR")) / "website" / "clinical_decision_support" / "cached_plots" / str(dataset) / str(bubu) / str(ecg_id) / f"lead_{i}.html"
+    return str(cached_path)
 
 
 def plot_ecg_cached(ecg_id: str) -> None:

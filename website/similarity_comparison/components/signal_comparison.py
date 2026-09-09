@@ -1,3 +1,5 @@
+from pathlib import Path
+import os
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
@@ -39,12 +41,13 @@ def set_comparison(idx):
 
 @st.cache_data
 def fetch_page(index: int):
-    return pd.read_parquet(f"data/{index}.parquet", engine="pyarrow")
+    data_path = Path(os.getenv("CF_DATA_DIR")) / "website" / "similarity_comparison"
+    return pd.read_parquet(data_path / f"{index}.parquet", engine="pyarrow")
 
 @st.fragment
 def comparison_per_signal():
     signals = fetch_page(st.session_state.page_index)
-    
+
     original = signals.iloc[0]
     comp = {1: signals.iloc[1], 2: signals.iloc[2], 3: signals.iloc[3]}[st.session_state.comparison_index]
 
@@ -106,14 +109,14 @@ def expender_style():
 
 @st.fragment
 def display_lead(name, on, lead, original, comp_1, comp_2, comp_3):
-    with st.expander(name, expanded=True): 
+    with st.expander(name, expanded=True):
         st.markdown('<div class="content-box">', unsafe_allow_html=True)
         if on:
             st.plotly_chart(render_figure(original[lead], "Original"), use_container_width=True, key=f"{lead}_orig")
             st.plotly_chart(render_figure(comp_1[lead], f"Comparison 1"), use_container_width=True, key=f"{lead}_comp1")
             st.plotly_chart(render_figure(comp_2[lead], f"Comparison 2"), use_container_width=True, key=f"{lead}_comp2")
             st.plotly_chart(render_figure(comp_3[lead], f"Comparison 3"), use_container_width=True, key=f"{lead}_comp3")
-        
+
         else:
             col1, col2 = st.columns([1, 1])
             with col1:
@@ -144,8 +147,8 @@ def display_lead_selection(name, lead):
         }
         </style>
     """, unsafe_allow_html=True)
-    
-  
+
+
     text = f"<b> Which comparison signal is most similar to the original signal for lead {name} </b>"
     st.markdown(f'<p style="font-size: 20px; text-align: center;">{text}</p>', unsafe_allow_html=True)
     st.segmented_control(
@@ -189,16 +192,14 @@ def comparison_per_lead():
     st.divider()
 
     expender_style()
-        
+
     signals = fetch_page(st.session_state.page_index)
     original = signals.iloc[0]
     comp_1 = signals.iloc[1]
     comp_2 = signals.iloc[2]
     comp_3 = signals.iloc[3]
 
-    
+
     for lead, name in zip(LEADS, LEAD_NAMES):
         display_lead(name, on, lead, original, comp_1, comp_2, comp_3)
         display_lead_selection(name, lead)
-
-

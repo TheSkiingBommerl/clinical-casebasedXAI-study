@@ -6,6 +6,7 @@ import dotenv
 import pandas as pd
 import streamlit as st
 from streamlit_sortables import sort_items
+from clinical_friction.helpers.login_bypass import is_bypassed
 
 dotenv.load_dotenv()
 
@@ -19,9 +20,13 @@ def save_ranking():
         "least": st.session_state.ranking[2],
     }
     df_new = pd.DataFrame([row])
-    user = str(st.user.get("preferred_username"))
+    user_bypass = is_bypassed()
+    if user_bypass is None:
+        user = st.user.get("preferred_username")
+    else:
+        user = user_bypass
 
-    root = Path(os.environ["FLO_RESULTS"]) / "results"
+    root = Path(os.environ["CF_DATA_DIR"]) / "results" /  "similarity_comparison"
 
     ranking_csv = root / user / f"ranking_data_{user}.csv"
     if os.path.exists(ranking_csv):
