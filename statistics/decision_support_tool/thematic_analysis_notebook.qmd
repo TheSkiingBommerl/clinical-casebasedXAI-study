@@ -1,6 +1,6 @@
 ---
 title: "Qualitative Thematic Analysis"
-subtitle: "Post-study survey — CHI 2027 Florentine"
+subtitle: "Post-study survey — CHI 2027"
 format:
   html:
     toc: true
@@ -11,6 +11,7 @@ format:
     code-overflow: wrap
     embed-resources: true
     theme: cosmo
+
 execute:
   echo: true
   warning: false
@@ -56,7 +57,7 @@ itself uses no additional R packages.
 ## Configuration and reproducibility safeguards
 
 The exact OneDrive directory supplied for the project is the default. The
-environment variable `CHI2027_FLORENTINE_DIR` can override it when the project
+environment variable `CHI2027_DIR` can override it when the project
 is run on another computer. If the default directory does not exist but the CSV
 is next to the notebook, the notebook uses its current directory.
 
@@ -64,13 +65,11 @@ is next to the notebook, the notebook uses its current directory.
 #| label: configuration
 
 DEFAULT_PROJECT_DIR <- paste0(
-  "/Users/elenaberetta/Library/CloudStorage/",
-  "OneDrive-VrijeUniversiteitAmsterdam/",
-  "Documenti - OneDrive/VU/Codice/CHI2027-Florentine"
+  "Fill in Path"
 )
 
 project_dir <- Sys.getenv(
-  "CHI2027_FLORENTINE_DIR",
+  "CHI2027_DIR",
   unset = DEFAULT_PROJECT_DIR
 )
 
@@ -87,7 +86,7 @@ if (!dir.exists(project_dir)) {
       paste0(
         "Project directory not found:\n", project_dir,
         "\n\nPlace the notebook and survey CSV in the same directory, ",
-        "edit DEFAULT_PROJECT_DIR, or set CHI2027_FLORENTINE_DIR."
+        "edit DEFAULT_PROJECT_DIR, or set CHI2027_DIR."
       )
     )
   }
@@ -97,7 +96,7 @@ if (!dir.exists(project_dir)) {
 
 preferred_input_file <- file.path(
   project_dir,
-  "survey_data_all_participants_1.csv"
+  "survey_data_all_participants.csv"
 )
 
 if (file.exists(preferred_input_file)) {
@@ -129,8 +128,8 @@ dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 EXPECTED_PARTICIPANTS <- 1:27
 EXPECTED_QUALITATIVE_SIGNATURE <- 720210829
 
-cat("Input file:", input_file, "\n")
-cat("Output directory:", output_dir, "\n")
+# cat("Input file:", input_file, "\n")
+# cat("Output directory:", output_dir, "\n")
 ```
 
 The semantic signature is calculated only from participant IDs and normalized
@@ -350,13 +349,12 @@ responses_long_all$translation_en[
   responses_long_all$participant == 27 &
     responses_long_all$source_question == "tool_experience"
 ] <- paste0(
-  "It helps to recognize what is essential, but it also tempts one not to ",
-  "conduct a step-by-step analysis."
+  "Placeholder Quote" #To preserve privacy the complete participant responses are not included in the supplemental material."
 )
 responses_long_all$translation_en[
   responses_long_all$participant == 27 &
     responses_long_all$source_question == "trust_factors"
-] <- "Correlation with age."
+] <- "Placeholder Quote" #To preserve privacy the complete participant responses are not included in the supplemental material."
 
 responses_long_all$analysis_text <- ifelse(
   responses_long_all$translation_en == "",
@@ -450,27 +448,28 @@ importance.
 The complete corpus is displayed below to make the relationship between raw
 responses and interpretation inspectable.
 
+**To preserve privacy the complete participant responses are not included in the supplemental material.**
 ```{r}
 #| label: display-corpus
 
-knitr::kable(
-  responses_long[
-    ,
-    c(
-      "participant_label",
-      "source_question",
-      "response_text",
-      "translation_en"
-    )
-  ],
-  col.names = c(
-    "Participant",
-    "Question",
-    "Original response",
-    "English translation when applicable"
-  ),
-  caption = "Complete qualitative corpus"
-)
+# knitr::kable(
+#   responses_long[
+#     ,
+#     c(
+#       "participant_label",
+#       "source_question",
+#       "response_text",
+#       "translation_en"
+#     )
+#   ],
+#   col.names = c(
+#     "Participant",
+#     "Question",
+#     "Original response",
+#     "English translation when applicable"
+#   ),
+#   caption = "Complete qualitative corpus"
+# )
 ```
 
 ## Codebook
@@ -697,29 +696,31 @@ cat("Validated coding assignments:", nrow(coding), "\n")
 The table makes every interpretive assignment traceable to the original
 response.
 
+**To preserve privacy the complete participant responses are not included in the supplemental material.**
+
 ```{r}
 #| label: display-coding
 
-knitr::kable(
-  coding[
-    ,
-    c(
-      "participant_label",
-      "source_question",
-      "code_label",
-      "response_text",
-      "translation_en"
-    )
-  ],
-  col.names = c(
-    "Participant",
-    "Question",
-    "Code",
-    "Original response",
-    "English translation when applicable"
-  ),
-  caption = "Participant-level qualitative coding matrix"
-)
+# knitr::kable(
+#   coding[
+#     ,
+#     c(
+#       "participant_label",
+#       "source_question",
+#       "code_label",
+#       "response_text",
+#       "translation_en"
+#     )
+#   ],
+#   col.names = c(
+#     "Participant",
+#     "Question",
+#     "Code",
+#     "Original response",
+#     "English translation when applicable"
+#   ),
+#   caption = "Participant-level qualitative coding matrix"
+# )
 ```
 
 Responses that do not support a sufficiently specific semantic code are
@@ -776,26 +777,28 @@ uncoded_responses$exclusion_rationale <- uncoded_rationales$exclusion_rationale[
   match(uncoded_keys, rationale_keys)
 ]
 
-knitr::kable(
-  uncoded_responses[
-    ,
-    c(
-      "participant_label",
-      "source_question",
-      "response_text",
-      "translation_en",
-      "exclusion_rationale"
-    )
-  ],
-  col.names = c(
-    "Participant",
-    "Question",
-    "Original response",
-    "English translation when applicable",
-    "Reason no semantic code was assigned"
-  ),
-  caption = "Non-empty responses retained without a semantic code"
-)
+# To preserve privacy the complete participant responses are not included in the supplemental material.
+
+# knitr::kable(
+#   uncoded_responses[
+#     ,
+#     c(
+#       "participant_label",
+#       "source_question",
+#       "response_text",
+#       "translation_en",
+#       "exclusion_rationale"
+#     )
+#   ],
+#   col.names = c(
+#     "Participant",
+#     "Question",
+#     "Original response",
+#     "English translation when applicable",
+#     "Reason no semantic code was assigned"
+#   ),
+#   caption = "Non-empty responses retained without a semantic code"
+# )
 ```
 
 ## Candidate themes
@@ -1361,9 +1364,7 @@ The co-occurrence matrix counts participants represented in two themes. Jaccard
 similarity divides this intersection by the number represented in either theme,
 thereby accounting for the different sizes of themes:
 
-\[
-J(A,B)=\frac{|A\cap B|}{|A\cup B|}.
-\]
+$J(A,B) = \frac{|A \cap B|}{|A \cup B|}$
 
 ```{r}
 #| label: theme-overlap-analysis
@@ -1728,102 +1729,79 @@ Every excerpt is checked as an exact substring of the relevant raw response;
 rendering stops if any quotation has been altered or attributed to the wrong
 participant.
 
+**To preserve privacy the complete participant responses are not included in the supplemental material.**
 ```{r}
 #| label: verify-quotes
 
-quotes <- data.frame(
-  theme_id = c(
-    "T1", "T1", "T1", "T1", "T1",
-    "T2", "T2", "T2", "T2", "T2", "T2",
-    "T3", "T3", "T3", "T3", "T3",
-    "T4", "T4", "T4", "T4", "T4",
-    "T5", "T5", "T5", "T5"
-  ),
-  participant = c(
-    5, 6, 11, 21, 27,
-    4, 10, 9, 23, 24, 11,
-    12, 10, 16, 27, 24,
-    13, 17, 24, 25, 25,
-    3, 9, 19, 23
-  ),
-  source_question = c(
-    "tool_experience", "tool_experience", "tool_experience", "trust_factors", "tool_experience",
-    "trust_factors", "trust_factors", "trust_factors", "trust_factors", "trust_factors", "trust_factors",
-    "trust_factors", "tool_experience", "trust_factors", "tool_experience", "trust_factors",
-    "tool_experience", "trust_factors", "trust_factors", "tool_experience", "trust_factors",
-    "tool_experience", "tool_experience", "tool_experience", "tool_experience"
-  ),
-  excerpt = c(
-    "AI prediction does narrow down the possible differentials",
-    "helped to find a direction and made more confident in finding the right diagnosis.",
-    "helpful, to get your attention to specific parts of the ECG due to the AI prediction.",
-    "shortlist the pathologies.",
-    "Es hilft, wesentliches zu erkennen",
-    "I counter checked the AI's prediction with my experience.",
-    "i double checked everything manually anyway",
-    "The AI prediction in the hospital is almost always wrong",
-    "it omitted minor details like pacemaker spikes",
-    "I therefore treated the AI as supportive information rather than definitive evidence.",
-    "specific measureable parameters that an AI can analyse very precise.",
-    "my bad knowledge of ECGs made me trust the predictions",
-    "I felt it influenced my judgement while looking at the ecg.",
-    "I trusted AI predictions as I am not very pro at reading ecg",
-    "verleitet allerdings auch dazu, keine schritt für schritt Analyse durchzuführen",
-    "I therefore treated the AI as supportive information rather than definitive evidence.",
-    "It was nice to have references to help in making a decision.",
-    "When AI predictions matched the reference ECG, I trusted it.",
-    "especially when the consistency score was high and the reference patient showed a similar pattern.",
-    "The AI diagnostic prediction helped, but the reference patient was distracting",
-    "I distrusted the AI's prediction when the patient and reference patient's ECG's were unalike.",
-    "Very easy to use, very long explanation",
-    "it's just a bit slow and the switches between the x-axis size were a bit confusing in the beginning",
-    "it was a bit confusing to start, however after getting used to it, i found it easier to use.",
-    "instructive and helped revise my branch blocks"
-  ),
-  stringsAsFactors = FALSE
-)
+# quotes <- data.frame(
+#   theme_id = c(
+#     "T1", "T1", "T1", "T1", "T1",
+#     "T2", "T2", "T2", "T2", "T2", "T2",
+#     "T3", "T3", "T3", "T3", "T3",
+#     "T4", "T4", "T4", "T4", "T4",
+#     "T5", "T5", "T5", "T5"
+#   ),
+#   participant = c(
+#     5, 6, 11, 21, 27,
+#     4, 10, 9, 23, 24, 11,
+#     12, 10, 16, 27, 24,
+#     13, 17, 24, 25, 25,
+#     3, 9, 19, 23
+#   ),
+#   source_question = c(
+#     "tool_experience", "tool_experience", "tool_experience", "trust_factors", "tool_experience",
+#     "trust_factors", "trust_factors", "trust_factors", "trust_factors", "trust_factors", "trust_factors",
+#     "trust_factors", "tool_experience", "trust_factors", "tool_experience", "trust_factors",
+#     "tool_experience", "trust_factors", "trust_factors", "tool_experience", "trust_factors",
+#     "tool_experience", "tool_experience", "tool_experience", "tool_experience"
+#   ),
+#   excerpt = c(
+#     # Placeholder Participant Answers
+#   ),
+#   stringsAsFactors = FALSE
+# )
+# 
+# quotes$participant_label <- sprintf("P%02d", quotes$participant)
+# quotes$theme <- theme_definitions$theme[
+#   match(quotes$theme_id, theme_definitions$theme_id)
+# ]
+# 
+# quote_keys <- paste(quotes$participant, quotes$source_question, sep = "||")
+# quote_response_index <- match(quote_keys, response_keys)
+# 
+# if (anyNA(quote_response_index)) {
+#   stop("At least one quotation does not point to an existing response.")
+# }
+# 
+# quotes$full_response <- responses_long$response_text[quote_response_index]
+# quotes$translation_en <- responses_long$translation_en[quote_response_index]
+# quotes$verified <- mapply(
+#   function(excerpt, full_response) {
+#     grepl(excerpt, full_response, fixed = TRUE)
+#   },
+#   quotes$excerpt,
+#   quotes$full_response,
+#   USE.NAMES = FALSE
+# )
+# 
+# if (any(!quotes$verified)) {
+#   stop("At least one exemplar quotation failed source verification.")
+# }
 
-quotes$participant_label <- sprintf("P%02d", quotes$participant)
-quotes$theme <- theme_definitions$theme[
-  match(quotes$theme_id, theme_definitions$theme_id)
-]
-
-quote_keys <- paste(quotes$participant, quotes$source_question, sep = "||")
-quote_response_index <- match(quote_keys, response_keys)
-
-if (anyNA(quote_response_index)) {
-  stop("At least one quotation does not point to an existing response.")
-}
-
-quotes$full_response <- responses_long$response_text[quote_response_index]
-quotes$translation_en <- responses_long$translation_en[quote_response_index]
-quotes$verified <- mapply(
-  function(excerpt, full_response) {
-    grepl(excerpt, full_response, fixed = TRUE)
-  },
-  quotes$excerpt,
-  quotes$full_response,
-  USE.NAMES = FALSE
-)
-
-if (any(!quotes$verified)) {
-  stop("At least one exemplar quotation failed source verification.")
-}
-
-knitr::kable(
-  quotes[
-    ,
-    c("theme_id", "participant_label", "excerpt", "translation_en", "verified")
-  ],
-  col.names = c(
-    "Theme",
-    "Participant",
-    "Verified verbatim excerpt",
-    "English translation when applicable",
-    "Verified"
-  ),
-  caption = "Exemplar quotations verified against the raw CSV"
-)
+# knitr::kable(
+#   quotes[
+#     ,
+#     c("theme_id", "participant_label", "excerpt", "translation_en", "verified")
+#   ],
+#   col.names = c(
+#     "Theme",
+#     "Participant",
+#     "Verified verbatim excerpt",
+#     "English translation when applicable",
+#     "Verified"
+#   ),
+#   caption = "Exemplar quotations verified against the raw CSV"
+# )
 ```
 
 ## Thematic results and interpretation
@@ -1839,13 +1817,7 @@ direction, and indicated what to inspect. The value participants described was
 therefore not limited to receiving a proposed answer; the prediction also
 reorganized the diagnostic task.
 
-> “AI prediction does narrow down the possible differentials” — P05
-
-> “helped to find a direction and made more confident in finding the right diagnosis.” — P06
-
-> “helpful, to get your attention to specific parts of the ECG due to the AI prediction.” — P11
-
-> “It helps to recognize what is essential [...]” — P27, translated from German
+**Placeholder Quotes: To preserve privacy the complete participant responses are not included in the supplemental material.**
 
 P27's account sharpens the mechanism: identifying what is essential can be
 helpful, but the same attentional compression can also discourage a systematic
@@ -1871,17 +1843,7 @@ accuracy across cases, manual checking, the displayed stability or agreement
 signal, training-data provenance, previous experience with clinical AI, and
 known contextual limitations.
 
-> “I counter checked the AI's prediction with my experience. It was 100% accurate.” — P04
-
-> “The confidence numbers helped me trust the prediction [...] i double checked everything manually anyway” — P10
-
-> “The AI prediction in the hospital is almost always wrong [...] This one was quite accurate” — P09
-
-> “it omitted minor details like pacemaker spikes” — P23
-
-> “I therefore treated the AI as supportive information rather than definitive evidence.” — P24
-
-> “specific measureable parameters that an AI can analyse very precise.” — P11
+**Placeholder Quotes: To preserve privacy the complete participant responses are not included in the supplemental material.**
 
 The stronger interpretation is therefore not simply that participants “trusted
 AI.” They negotiated trust through several forms of corroboration, updated it
@@ -1913,15 +1875,7 @@ influence or a shortcut risk. Two participants also explicitly bounded their
 reliance, showing that verification, influence, and restraint are not mutually
 exclusive positions.
 
-> “my bad knowledge of ECGs made me trust the predictions” — P12
-
-> “I felt it influenced my judgement while looking at the ecg. Especially when deciding if measured times were pathological.” — P10
-
-> “I trusted AI predictions as I am not very pro at reading ecg” — P16
-
-> “It helps to recognize what is essential, but it also tempts one not to conduct a step-by-step analysis.” — P27, translated from German
-
-> “I therefore treated the AI as supportive information rather than definitive evidence.” — P24
+**Placeholder Quotes: To preserve privacy the complete participant responses are not included in the supplemental material.**
 
 The defensible claim is a **perceived tension between active verification and
 cognitive substitution**. The responses suggest conditions under which support
@@ -1942,13 +1896,7 @@ point. Their accounts were not uniformly positive: comparison supported trust
 when the ECGs appeared meaningfully similar, but mismatch or distraction could
 undermine it.
 
-> “It was nice to have references to help in making a decision.” — P13
-
-> “When AI predictions matched the reference ECG, I trusted it.” — P17
-
-> “The AI diagnostic prediction helped, but the reference patient was distracting” — P25
-
-> “I distrusted the AI's prediction when the patient and reference patient's ECG's were unalike.” — P25
+**Placeholder Quotes: To preserve privacy the complete participant responses are not included in the supplemental material.**
 
 The open responses support a narrower claim than “reference cases were useful.”
 They functioned as **conditional and contested evidence**: useful when a
@@ -1977,13 +1925,7 @@ required familiarization, or the reference display was distracting. Four
 responses framed the tool as supporting learning, revision, or early-career
 use.
 
-> “Very easy to use, very long explanation” — P03
-
-> “it's just a bit slow and the switches between the x-axis size were a bit confusing in the beginning” — P09
-
-> “it was a bit confusing to start, however after getting used to it, i found it easier to use.” — P19
-
-> “instructive and helped revise my branch blocks” — P23
+**Placeholder Quotes: To preserve privacy the complete participant responses are not included in the supplemental material.**
 
 **Boundary:** these data support perceived educational potential, not improved
 learning, retention, or transfer.
@@ -2048,187 +1990,187 @@ slowness, changing axes, and an initial learning curve.
 | Concrete usability friction and perceived training potential were present. | The tool improved learning, retention, or transfer. |
 | Themes organize this small prompted corpus. | The themes reached saturation or represent population prevalence. |
 
-## Export reproducibility outputs {.unnumbered}
+<!-- ## Export reproducibility outputs {.unnumbered} -->
 
-The following block writes analysis outputs to
-`qualitative_analysis_outputs`. It does not alter the original survey.
+<!-- The following block writes analysis outputs to -->
+<!-- `qualitative_analysis_outputs`. It does not alter the original survey. -->
 
-```{r}
-#| label: export-reproducibility-outputs
+<!-- ```{r} -->
+<!-- #| label: export-reproducibility-outputs -->
 
-participant_code_map <- aggregate(
-  code ~ participant + participant_label,
-  data = unique(coding[, c("participant", "participant_label", "code")]),
-  FUN = collapse_unique
-)
+<!-- participant_code_map <- aggregate( -->
+<!--   code ~ participant + participant_label, -->
+<!--   data = unique(coding[, c("participant", "participant_label", "code")]), -->
+<!--   FUN = collapse_unique -->
+<!-- ) -->
 
-participant_theme_map <- aggregate(
-  theme ~ participant + participant_label,
-  data = unique(coding_theme[, c("participant", "participant_label", "theme")]),
-  FUN = collapse_unique
-)
+<!-- participant_theme_map <- aggregate( -->
+<!--   theme ~ participant + participant_label, -->
+<!--   data = unique(coding_theme[, c("participant", "participant_label", "theme")]), -->
+<!--   FUN = collapse_unique -->
+<!-- ) -->
 
-participant_summary <- aggregate(
-  response_available ~ participant + participant_label,
-  data = responses_long_all,
-  FUN = sum
-)
-names(participant_summary)[names(participant_summary) == "response_available"] <-
-  "available_responses"
-participant_summary$included_in_qualitative_analysis <-
-  participant_summary$participant %in% QUALITATIVE_PARTICIPANTS
+<!-- participant_summary <- aggregate( -->
+<!--   response_available ~ participant + participant_label, -->
+<!--   data = responses_long_all, -->
+<!--   FUN = sum -->
+<!-- ) -->
+<!-- names(participant_summary)[names(participant_summary) == "response_available"] <- -->
+<!--   "available_responses" -->
+<!-- participant_summary$included_in_qualitative_analysis <- -->
+<!--   participant_summary$participant %in% QUALITATIVE_PARTICIPANTS -->
 
-participant_summary <- merge(
-  participant_summary,
-  participant_code_map,
-  by = c("participant", "participant_label"),
-  all.x = TRUE,
-  sort = TRUE
-)
-participant_summary <- merge(
-  participant_summary,
-  participant_theme_map,
-  by = c("participant", "participant_label"),
-  all.x = TRUE,
-  sort = TRUE
-)
-participant_summary$code[is.na(participant_summary$code)] <- ""
-participant_summary$theme[is.na(participant_summary$theme)] <- ""
+<!-- participant_summary <- merge( -->
+<!--   participant_summary, -->
+<!--   participant_code_map, -->
+<!--   by = c("participant", "participant_label"), -->
+<!--   all.x = TRUE, -->
+<!--   sort = TRUE -->
+<!-- ) -->
+<!-- participant_summary <- merge( -->
+<!--   participant_summary, -->
+<!--   participant_theme_map, -->
+<!--   by = c("participant", "participant_label"), -->
+<!--   all.x = TRUE, -->
+<!--   sort = TRUE -->
+<!-- ) -->
+<!-- participant_summary$code[is.na(participant_summary$code)] <- "" -->
+<!-- participant_summary$theme[is.na(participant_summary$theme)] <- "" -->
 
-missing_responses <- responses_long_all[
-  !responses_long_all$response_available,
-  ,
-  drop = FALSE
-]
+<!-- missing_responses <- responses_long_all[ -->
+<!--   !responses_long_all$response_available, -->
+<!--   , -->
+<!--   drop = FALSE -->
+<!-- ] -->
 
-participant_theme_matrix_export <- data.frame(
-  participant_label = rownames(participant_theme_matrix),
-  participant_theme_matrix,
-  check.names = FALSE,
-  row.names = NULL
-)
-theme_intersections_export <- data.frame(
-  theme_id = rownames(theme_intersections),
-  theme_intersections,
-  check.names = FALSE,
-  row.names = NULL
-)
-theme_jaccard_export <- data.frame(
-  theme_id = rownames(theme_jaccard),
-  round(theme_jaccard, 4),
-  check.names = FALSE,
-  row.names = NULL
-)
+<!-- participant_theme_matrix_export <- data.frame( -->
+<!--   participant_label = rownames(participant_theme_matrix), -->
+<!--   participant_theme_matrix, -->
+<!--   check.names = FALSE, -->
+<!--   row.names = NULL -->
+<!-- ) -->
+<!-- theme_intersections_export <- data.frame( -->
+<!--   theme_id = rownames(theme_intersections), -->
+<!--   theme_intersections, -->
+<!--   check.names = FALSE, -->
+<!--   row.names = NULL -->
+<!-- ) -->
+<!-- theme_jaccard_export <- data.frame( -->
+<!--   theme_id = rownames(theme_jaccard), -->
+<!--   round(theme_jaccard, 4), -->
+<!--   check.names = FALSE, -->
+<!--   row.names = NULL -->
+<!-- ) -->
 
-write_utf8_csv(
-  responses_long_all,
-  file.path(output_dir, "qualitative_responses_long_all.csv")
-)
-write_utf8_csv(
-  responses_long,
-  file.path(output_dir, "qualitative_responses_long.csv")
-)
-write_utf8_csv(
-  missing_responses,
-  file.path(output_dir, "qualitative_missing_responses.csv")
-)
-write_utf8_csv(
-  codebook,
-  file.path(output_dir, "qualitative_codebook.csv")
-)
-write_utf8_csv(
-  coding,
-  file.path(output_dir, "qualitative_coding_assignments.csv")
-)
-write_utf8_csv(
-  coding_theme,
-  file.path(output_dir, "qualitative_coding_with_themes.csv")
-)
-write_utf8_csv(
-  code_summary,
-  file.path(output_dir, "qualitative_code_summary.csv")
-)
-write_utf8_csv(
-  theme_definitions,
-  file.path(output_dir, "qualitative_theme_definitions.csv")
-)
-write_utf8_csv(
-  theme_map,
-  file.path(output_dir, "qualitative_theme_map.csv")
-)
-write_utf8_csv(
-  theme_summary,
-  file.path(output_dir, "qualitative_theme_summary.csv")
-)
-write_utf8_csv(
-  quotes,
-  file.path(output_dir, "qualitative_exemplar_quotes.csv")
-)
-write_utf8_csv(
-  uncoded_responses,
-  file.path(output_dir, "qualitative_uncoded_responses.csv")
-)
-write_utf8_csv(
-  participant_summary,
-  file.path(output_dir, "qualitative_participant_summary.csv")
-)
-write_utf8_csv(
-  code_question_summary,
-  file.path(output_dir, "qualitative_code_by_question.csv")
-)
-write_utf8_csv(
-  participant_theme_configuration,
-  file.path(output_dir, "qualitative_participant_theme_configuration.csv")
-)
-write_utf8_csv(
-  participant_theme_matrix_export,
-  file.path(output_dir, "qualitative_participant_theme_matrix.csv")
-)
-write_utf8_csv(
-  theme_intersections_export,
-  file.path(output_dir, "qualitative_theme_intersections.csv")
-)
-write_utf8_csv(
-  theme_jaccard_export,
-  file.path(output_dir, "qualitative_theme_jaccard.csv")
-)
-write_utf8_csv(
-  theme_overlap_pairs,
-  file.path(output_dir, "qualitative_theme_overlap_pairs.csv")
-)
-write_utf8_csv(
-  evidence_source_summary,
-  file.path(output_dir, "qualitative_trust_evidence_sources.csv")
-)
-write_utf8_csv(
-  contrast_cases,
-  file.path(output_dir, "qualitative_contrasting_cases.csv")
-)
+<!-- write_utf8_csv( -->
+<!--   responses_long_all, -->
+<!--   file.path(output_dir, "qualitative_responses_long_all.csv") -->
+<!-- ) -->
+<!-- write_utf8_csv( -->
+<!--   responses_long, -->
+<!--   file.path(output_dir, "qualitative_responses_long.csv") -->
+<!-- ) -->
+<!-- write_utf8_csv( -->
+<!--   missing_responses, -->
+<!--   file.path(output_dir, "qualitative_missing_responses.csv") -->
+<!-- ) -->
+<!-- write_utf8_csv( -->
+<!--   codebook, -->
+<!--   file.path(output_dir, "qualitative_codebook.csv") -->
+<!-- ) -->
+<!-- write_utf8_csv( -->
+<!--   coding, -->
+<!--   file.path(output_dir, "qualitative_coding_assignments.csv") -->
+<!-- ) -->
+<!-- write_utf8_csv( -->
+<!--   coding_theme, -->
+<!--   file.path(output_dir, "qualitative_coding_with_themes.csv") -->
+<!-- ) -->
+<!-- write_utf8_csv( -->
+<!--   code_summary, -->
+<!--   file.path(output_dir, "qualitative_code_summary.csv") -->
+<!-- ) -->
+<!-- write_utf8_csv( -->
+<!--   theme_definitions, -->
+<!--   file.path(output_dir, "qualitative_theme_definitions.csv") -->
+<!-- ) -->
+<!-- write_utf8_csv( -->
+<!--   theme_map, -->
+<!--   file.path(output_dir, "qualitative_theme_map.csv") -->
+<!-- ) -->
+<!-- write_utf8_csv( -->
+<!--   theme_summary, -->
+<!--   file.path(output_dir, "qualitative_theme_summary.csv") -->
+<!-- ) -->
+<!-- write_utf8_csv( -->
+<!--   quotes, -->
+<!--   file.path(output_dir, "qualitative_exemplar_quotes.csv") -->
+<!-- ) -->
+<!-- write_utf8_csv( -->
+<!--   uncoded_responses, -->
+<!--   file.path(output_dir, "qualitative_uncoded_responses.csv") -->
+<!-- ) -->
+<!-- write_utf8_csv( -->
+<!--   participant_summary, -->
+<!--   file.path(output_dir, "qualitative_participant_summary.csv") -->
+<!-- ) -->
+<!-- write_utf8_csv( -->
+<!--   code_question_summary, -->
+<!--   file.path(output_dir, "qualitative_code_by_question.csv") -->
+<!-- ) -->
+<!-- write_utf8_csv( -->
+<!--   participant_theme_configuration, -->
+<!--   file.path(output_dir, "qualitative_participant_theme_configuration.csv") -->
+<!-- ) -->
+<!-- write_utf8_csv( -->
+<!--   participant_theme_matrix_export, -->
+<!--   file.path(output_dir, "qualitative_participant_theme_matrix.csv") -->
+<!-- ) -->
+<!-- write_utf8_csv( -->
+<!--   theme_intersections_export, -->
+<!--   file.path(output_dir, "qualitative_theme_intersections.csv") -->
+<!-- ) -->
+<!-- write_utf8_csv( -->
+<!--   theme_jaccard_export, -->
+<!--   file.path(output_dir, "qualitative_theme_jaccard.csv") -->
+<!-- ) -->
+<!-- write_utf8_csv( -->
+<!--   theme_overlap_pairs, -->
+<!--   file.path(output_dir, "qualitative_theme_overlap_pairs.csv") -->
+<!-- ) -->
+<!-- write_utf8_csv( -->
+<!--   evidence_source_summary, -->
+<!--   file.path(output_dir, "qualitative_trust_evidence_sources.csv") -->
+<!-- ) -->
+<!-- write_utf8_csv( -->
+<!--   contrast_cases, -->
+<!--   file.path(output_dir, "qualitative_contrasting_cases.csv") -->
+<!-- ) -->
 
-exported_files <- c(
-  "qualitative_responses_long_all.csv",
-  "qualitative_responses_long.csv",
-  "qualitative_missing_responses.csv",
-  "qualitative_codebook.csv",
-  "qualitative_coding_assignments.csv",
-  "qualitative_coding_with_themes.csv",
-  "qualitative_code_summary.csv",
-  "qualitative_theme_definitions.csv",
-  "qualitative_theme_map.csv",
-  "qualitative_theme_summary.csv",
-  "qualitative_exemplar_quotes.csv",
-  "qualitative_uncoded_responses.csv",
-  "qualitative_participant_summary.csv",
-  "qualitative_code_by_question.csv",
-  "qualitative_participant_theme_configuration.csv",
-  "qualitative_participant_theme_matrix.csv",
-  "qualitative_theme_intersections.csv",
-  "qualitative_theme_jaccard.csv",
-  "qualitative_theme_overlap_pairs.csv",
-  "qualitative_trust_evidence_sources.csv",
-  "qualitative_contrasting_cases.csv"
-)
+<!-- exported_files <- c( -->
+<!--   "qualitative_responses_long_all.csv", -->
+<!--   "qualitative_responses_long.csv", -->
+<!--   "qualitative_missing_responses.csv", -->
+<!--   "qualitative_codebook.csv", -->
+<!--   "qualitative_coding_assignments.csv", -->
+<!--   "qualitative_coding_with_themes.csv", -->
+<!--   "qualitative_code_summary.csv", -->
+<!--   "qualitative_theme_definitions.csv", -->
+<!--   "qualitative_theme_map.csv", -->
+<!--   "qualitative_theme_summary.csv", -->
+<!--   "qualitative_exemplar_quotes.csv", -->
+<!--   "qualitative_uncoded_responses.csv", -->
+<!--   "qualitative_participant_summary.csv", -->
+<!--   "qualitative_code_by_question.csv", -->
+<!--   "qualitative_participant_theme_configuration.csv", -->
+<!--   "qualitative_participant_theme_matrix.csv", -->
+<!--   "qualitative_theme_intersections.csv", -->
+<!--   "qualitative_theme_jaccard.csv", -->
+<!--   "qualitative_theme_overlap_pairs.csv", -->
+<!--   "qualitative_trust_evidence_sources.csv", -->
+<!--   "qualitative_contrasting_cases.csv" -->
+<!-- ) -->
 
-data.frame(exported_file = exported_files, stringsAsFactors = FALSE) |>
-  knitr::kable(caption = "Reproducibility outputs created by this notebook")
-```
+<!-- data.frame(exported_file = exported_files, stringsAsFactors = FALSE) |> -->
+<!--   knitr::kable(caption = "Reproducibility outputs created by this notebook") -->
+<!-- ``` -->

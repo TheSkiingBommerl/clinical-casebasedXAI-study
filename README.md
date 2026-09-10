@@ -1,4 +1,4 @@
-# Understanding AI Support for ECG Interpretation: A Formative Comparison of Direct Predictions and Case-Based Explanations
+# Prediction, Precedent, or Both? Comparing Direct Predictions and Retrieved Cases for AI-Supported ECG Interpretation
 
 ## Installation
 
@@ -72,18 +72,18 @@ source .venv/bin/activate
 AI-diagnostic-support-init-db
 ```
 
-### Initializing the experiments
+### Initializing the study
 
-The necessary tables and files for each of the two experiments must be generated before running either of the tools.
+The necessary tables and files must be generated before running either of the tools.
 
-#### Initialize the similarity comparison experiment
+#### Initialize the similarity comparison
 
 ``` bash
 # In the activated virtual environment, run:
 AI-diagnostic-support-init-similarity
 ```
 
-#### Initialize the decision support experiment
+#### Initialize the decision support
 
 ``` bash
 # In the activated virtual environment, run:

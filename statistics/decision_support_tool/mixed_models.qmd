@@ -237,7 +237,7 @@ It was possible to approximate the distance from the plot grid, however.
 ```{r}
 m_sens1 <- glmer(
     fully_correct ~ pred_support * case_support + (1 | participant) + (1 | patient),
-    data = subset(df_cases, !participant %in% c("1", "2")),
+    data = subset(df_cases, !participant %in% c("5", "7")),
     family = binomial
 )
 glmer_markdown(m_sens1, caption = "Sensitivity analysis 1: Exclude P1 and P2")
