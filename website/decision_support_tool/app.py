@@ -161,7 +161,7 @@ if user_bypass is not None or is_logged_in:
 
         dataset = user.split("_")[-1]
 
-        folder =  data_path = Path(os.getenv("CF_DATA_DIR")) / "website" / "clinical_decision_support" / {}
+        folder =  data_path = Path(os.getenv("CF_DATA_DIR")) / "website" / "clinical_decision_support" / dataset
         patient_count = len(list(folder.glob("*.parquet")))
 
         patients = {}
