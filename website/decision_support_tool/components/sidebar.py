@@ -14,7 +14,7 @@ import dotenv
 
 dotenv.load_dotenv()
 
-required_vars = ["FLO_RESULTS"]
+required_vars = ["CF_DATA_DIR"]
 
 for var in required_vars:
     if var not in os.environ:
