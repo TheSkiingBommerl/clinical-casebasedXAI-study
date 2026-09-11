@@ -44,11 +44,9 @@ First, create a database (the name is arbitrary):
 createdb AIdiagnosticsupport
 ```
 
-Ensure its name is listed in the `.env` file under the `DB_NAME` key:
+### 3. Create the .env file
+Rename the `.env-example` file to `.env` and change it, if applicable.
 
-```.env
-DB_NAME=AIdiagnosticsupport
-```
 
 #### 3. Initialize the database
 
@@ -89,22 +87,22 @@ AI-diagnostic-support-init-similarity
 # In the activated virtual environment, run:
 AI-diagnostic-support-init-support
 ```
-
+z
 ## Hosting the website
 
-The websites for the experiments were hosted on our own server and users were managed using LDAP (Lightweight Directory Access Protocol) and for authentication we used OAuth2 with Authelia. Each participant received their individual credentials.
+The [Streamlit](https://streamlit.io/) interactive websites for the experiments were hosted on our own server and users were managed using LDAP (Lightweight Directory Access Protocol) and for authentication we used OAuth2 with Authelia. Each participant received their individual credentials.
 
 ### Using your own Oauth 2 endpoint
 
 Setting up a OAuth2 provider is nontrivial.
-We used [LLDAP](https://github.com/lldap/lldap) for the user management and [Authelia](https://www.authelia.com/).
-A domain name is needed.
+We used [LLDAP](https://github.com/lldap/lldap) for the user management and [Authelia](https://www.authelia.com/) to authenticate the logins and supply the username of logged-in users to _Streamlit_.
 
-If you know how to do this, rename `example_secrets.toml` in the `.streamlit` to `secrets.toml` and fill it in.
+
+If you already have a authentiz, rename `example_secrets.toml` in the `.streamlit` to `secrets.toml` and fill it in.
 
 ### Bypassing the login to demo the tool.
 
-It is possible to bypass the login checks when running locally by setting the following environment variabe:
+It is possible to bypass the login checks when running locally by setting the following environment variable:
 
 ``` bash
 # Set this environment variable to bypass the login.
@@ -112,9 +110,11 @@ It is possible to bypass the login checks when running locally by setting the fo
 export CF_BYPASS_LOGIN=participant_0_1
 ```
 
+Two example `bash` scripts are included to run the strealit experiment with this login bypass enabled.
+
 The hosted tool will recognize you as this participant.
 
-# Study Description
+## Study Description
 
 ## Similarity Comparison - Retrieval Calibration as Design Rationale
 Check if any of the three similarity measures clearly misaligned with human similarity perception. 

@@ -9,7 +9,7 @@ import streamlit.components.v1 as components
 
 # needs to also sit behind authelia!!!
 dotenv.load_dotenv()
-FLASK_BASE = os.environ["FLO_FLASK_BASE"]
+FLASK_BASE = os.environ["CF_RECORDER_FLASK_BASE"]
 # "https://yourdomain.com/recorder-api"
 
 # The one thing you do need to make sure is that your reverse proxy (nginx/Traefik/etc.)
@@ -18,7 +18,7 @@ FLASK_BASE = os.environ["FLO_FLASK_BASE"]
 
 
 def recorder_button(user):
-    challenge = os.environ["FLOCHALLENGE"]
+    challenge = os.environ["CF_SERVER_SECRET"]
     components.html(
         f"""
         <button id="btn" onclick="openRecorder()"
@@ -51,7 +51,7 @@ def recorder_button(user):
 
 
 def stop_recording(user):
-    challenge = os.environ["FLOCHALLENGE"]
+    challenge = os.environ["CF_SERVER_SECRET"]
     components.html(
         f"""
         <script>

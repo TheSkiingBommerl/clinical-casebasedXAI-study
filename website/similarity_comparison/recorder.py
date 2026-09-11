@@ -21,7 +21,7 @@ with open(current_path.parent / "components" / "html" / "recorder.html") as f:
 @app.route("/recorder")
 def recorder():
     challenge = request.args.get("challenge", "none")
-    if challenge != os.environ["FLOCHALLENGE"]:
+    if challenge != os.environ["CF_SERVER_SECRET"]:
         abort(401)
     return Response(RECORDER_HTML, mimetype="text/html")
 
@@ -31,7 +31,7 @@ def upload():
     user = request.args.get("user", "unknown").replace("@", "_").replace(".", "_")
 
     challenge = request.args.get("challenge", "none")
-    if challenge != os.environ["FLOCHALLENGE"]:
+    if challenge != os.environ["CF_SERVER_SECRET"]:
         abort(401)
 
     chunk = int(request.args.get("chunk", 0))
@@ -48,7 +48,7 @@ def upload():
 @app.route("/stop", methods=["POST"])
 def stop():
     challenge = request.args.get("challenge", "none")
-    if challenge != os.environ["FLOCHALLENGE"]:
+    if challenge != os.environ["CF_SERVER_SECRET"]:
         abort(401)
 
     user = request.args.get("user", "unknown").replace("@", "_").replace(".", "_")
@@ -87,7 +87,7 @@ stop_signals = set()
 @app.route("/signal-stop", methods=["POST"])
 def signal_stop():
     challenge = request.args.get("challenge", "none")
-    if challenge != os.environ["FLOCHALLENGE"]:
+    if challenge != os.environ["CF_SERVER_SECRET"]:
         abort(401)
     user = request.args.get("user", "unknown")
     stop_signals.add(user)
@@ -97,7 +97,7 @@ def signal_stop():
 @app.route("/check-stop", methods=["GET"])
 def check_stop():
     challenge = request.args.get("challenge", "none")
-    if challenge != os.environ["FLOCHALLENGE"]:
+    if challenge != os.environ["CF_SERVER_SECRET"]:
         abort(401)
     user = request.args.get("user", "unknown")
     if user in stop_signals:

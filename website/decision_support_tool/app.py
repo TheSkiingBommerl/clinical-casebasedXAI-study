@@ -22,7 +22,7 @@ from AI_diagnostic_support.helpers.login_bypass import is_bypassed
 
 dotenv.load_dotenv()
 
-required_vars = ["FLOCHALLENGE", "CF_DATA_DIR", "FLO_FLASK_BASE"]
+required_vars = ["CF_SERVER_SECRET", "CF_DATA_DIR", "CF_RECORDER_FLASK_BASE"]
 
 for var in required_vars:
     if var not in os.environ:

@@ -7,7 +7,7 @@ from pathlib import Path
 
 dotenv.load_dotenv()
 
-required_vars = ["FLOCHALLENGE", "FLO_RESULTS", "FLO_FLASK_BASE"]
+required_vars = ["CF_SERVER_SECRET", "FLO_RESULTS", "CF_RECORDER_FLASK_BASE"]
 
 for var in required_vars:
     if var not in os.environ:
