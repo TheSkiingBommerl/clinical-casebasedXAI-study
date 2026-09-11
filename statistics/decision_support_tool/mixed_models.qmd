@@ -1,22 +1,22 @@
 ---
 title: "Decision Support Tool - Mixed Models"
-format:
-  pdf:
-      fontsize: 8pt
+title: "Mixed models"
+output: "html_document"
 ---
 
 
+This R markdown file contains several linear mixed effects models fitted on 27 patients.
+Participants and patients are included as crossed random effects and the 2x2 study design are included as factors.
 
-I cobbled together the models from Elena's recommendations.
 
-The main feedback on the statistics was to treat the study arms as a 2x2 factorial design:
+The study arms:
 ```
-| Baseline           | Prediction support |
-|--------------------|--------------------|
-| Case-based support | Combined support   |
+| 0 - Baseline           | 1 - Prediction support |
+|------------------------|------------------------|
+| 2 - Case-based support | 3 - Combined support   |
 ```
 
-packages:
+To run this R file the following packages must be installed (e.g. `install.packages('lme4')`)
 
 - lme4
 - DHARMa
@@ -36,7 +36,7 @@ library(DHARMa)
 library(ggplot2)
 
 
-# A function to put results in a table
+# A function to put GLMER results in a markdown table
 glmer_markdown <- function(model, caption = "") {
     s <- summary(model)
     coefs <- as.data.frame(s$coefficients)
@@ -58,6 +58,8 @@ glmer_markdown <- function(model, caption = "") {
     knitr::kable(res_df, caption = caption, align = "lrrrrr")
 }
 
+
+# A function to put results in a markdown table
 lmer_markdown <- function(model, caption = "") {
     s <- summary(model)
     coefs <- as.data.frame(s$coefficients)
@@ -78,7 +80,7 @@ lmer_markdown <- function(model, caption = "") {
         res_df$`p value` <- ifelse(coefs$`Pr(>|t|)` < 0.001, "< 0.001", sprintf("%.4f", coefs$`Pr(>|t|)`))
     } else {
         p_vals <- 2 * (1 - pnorm(abs(coefs$`t value`)))
-        res_df$`p value)` <- ifelse(p_vals < 0.001, "< 0.001", sprintf("%.4f", p_vals))
+        res_df$`p value` <- ifelse(p_vals < 0.001, "< 0.001", sprintf("%.4f", p_vals))
     }
 
     res_df$odds_ratio <- OR <- round(exp(coefs$Estimate), 3)
@@ -87,27 +89,16 @@ lmer_markdown <- function(model, caption = "") {
 }
 ```
 
-
-
-
-
-## Logistic mixed model for exact match
-
-I'm not qualified to say if the exact diagnostic match is clinically meaningful.
-But here is a logistic mixed model for this primary outcome.
-
-> **Feedback**: Discuss the jaccard model but note problems with the data and Goodness of Fit. Focus on the exact diagnostic match. Discuss sensitivity analyses but non of them were significant.
-
-### Preprocessing
+## Preprocessing
 ```{r}
 #| code-fold: true
 #| code-summary: "Dataframe preprocessing (adding the factors etc)"
-raw_data <- read.csv("records.csv")
+raw_data <- read.csv("experiment_2_results.csv")
 
 # Check if prediction is correct for every row
 raw_data$correct <- raw_data$pred == raw_data$gold
 
-# Group data to patient-case level (540 evaluations: 27 participants x 20 patients)
+# Group data to patient-case level (480 evaluations: 24 participants x 20 patients)
 # Calculate trial_order (1 to 20) per participant based on unique patient appearance sequence
 df_cases_list <- list()
 
@@ -133,7 +124,7 @@ for (p in participants) {
             arm = arm_val,
             trial_order = t,
             experience_level = as.factor(exp_level),
-            fully_correct = fully_corr,
+            exact_match = fully_corr,
             jaccard = jaccard_val,
             stringsAsFactors = FALSE
         )
@@ -153,15 +144,17 @@ df_cases$arm_factor <- factor(df_cases$arm,
 # Add multi-label factor
 patient_gold_sums <- aggregate(gold ~ patient, data = raw_data, FUN = function(x) sum(x) / (length(x) / 7))
 multilabel_patients <- patient_gold_sums$patient[patient_gold_sums$gold > 1]
+
 df_cases$is_multilabel <- factor(ifelse(df_cases$patient %in% multilabel_patients, "Multi-label", "Single-label"))
 
 
 # Calculate case difficulty (for one of the sensitivity analyses) from the baseline arm
 baseline_cases <- subset(df_cases, arm == 0)
-case_diff_df <- aggregate(fully_correct ~ patient, data = baseline_cases, FUN = mean)
+case_diff_df <- aggregate(exact_match ~ patient, data = baseline_cases, FUN = mean)
 colnames(case_diff_df)[2] <- "baseline_case_accuracy"
 df_cases <- merge(df_cases, case_diff_df, by = "patient", all.x = TRUE)
 
+# Show a sample of the df but blank the participants name when sharing this file
 df_display <- data.table::copy(head(df_cases, 10))
 df_display$participant = "<blanked>"
 if (knitr::is_html_output()) {
@@ -169,36 +162,44 @@ if (knitr::is_html_output()) {
 }
 ```
 
-
-
 ``` {r}
-cat("Number of evaluations:", nrow(df_cases))
-cat("Total participants:", length(unique(df_cases$participant)))
+cat("Number of evaluations:", nrow(df_cases), "\n",
+    "Total participants:", length(unique(df_cases$participant)))
+
+
 ```
 
 
-### Main model: 2x2 exact diagnostic match
-Per Elena's feedback:
+### Main model: Exact diagnostic match
 
->_Ideally, fit
-an appropriate mixed-effects model with participant and ECG case as crossed random effects. If
-exact diagnostic match is clinically meaningful, use a logistic mixed model for that primary
-outcome and retain Jaccard as a secondary measure. Include trial order and expertise only where
-justified._
+We fit a logistc mixed-effects model with participant and ECG case as crossed random effects.
+The main effect is exact diagnostic match: _did a participant correctly identify the diagnosis without missing any?_
+
 ```{r}
 m1_primary <- glmer(
-    fully_correct ~ pred_support * case_support + (1 | participant) + (1 | patient),
+    exact_match ~ pred_support * case_support + (1 | participant) + (1 | patient),
     data = df_cases,
     family = binomial
 )
 
-glmer_markdown(m1_primary, caption = "Main Model (Exact match)")
+glmer_markdown(m1_primary, caption = "Main Model (Exact diagnostic match)")
 cat("\nRandom Effects Variance:\n")
 VarCorr(m1_primary)
 ```
 
+The main model regressed exact diagnostic match on prediction support,
+case-based support, and their interaction, using crossed random intercepts for both participant and patient case.
+Prediction support was linked to markedly greater odds of an exact diagnostic match.
+In contrast, case-based support by itself did not produce a reliable effect. The interaction between prediction and case-based support was also not significant (OR = 0.56, 95%
+CI [0.24, 1.28], p = .170), suggesting no indication that using both supports together changed performance compared
+with prediction support alone. The random-effects variance estimates suggest considerable variability in baseline performance across both participants and cases, consistent with the use of a crossed
+random-effects specificatio.
+
 **Is the model fitted properly?**
-We can check this with a simulated residuals plot with the `DHARMa` library:
+The [_DHARMa_](https://cran.r-project.org/web/packages/DHARMa/vignettes/DHARMa.html) package (_Diagnostics for HierArchical Regression Models_) is used to diagnoses the fits of all model with simulated reponse data.
+There are no signs of lack of fit (KS test p = .93;
+dispersion test p = .74; outlier test p = .33; Levene’s test across the four study arms).
+
 ```{r}
 #| fig-width: 12
 #| fig-height: 6
@@ -210,9 +211,12 @@ plot(sim_res)
 
 ### Model 2: GLLM adjusted for `trial_order` and `experience` covariates
 
+To determine whether trial sequence or previous clinical experience acted as confounders
+or moderators of the main effects, we re-estimated the model including these variables as covariates.
+
 ```{r}
 m2_covariates <- glmer(
-    fully_correct ~ pred_support * case_support + trial_order + experience_level + (1 | participant) + (1 | patient),
+    exact_match ~ pred_support * case_support + trial_order + experience_level + (1 | participant) + (1 | patient),
     data = df_cases,
     family = binomial
 )
@@ -231,13 +235,14 @@ plot(sim_res)
 
 ### Sensitivity analysis 1: exclude participants without interval
 
-Two participants (P1 and P2) did not have the interval measurement feature.
-It was possible to approximate the distance from the plot grid, however.
+As a robustness check, we re-estimated the main model after removing two participants (P1, P2).
+These participants used a version of the tool that did not have the interactive in-plot distance measurement feature and had to measure time deltas in ECG features from the plot grid.
+
 
 ```{r}
 m_sens1 <- glmer(
-    fully_correct ~ pred_support * case_support + (1 | participant) + (1 | patient),
-    data = subset(df_cases, !participant %in% c("5", "7")),
+    exact_match ~ pred_support * case_support + (1 | participant) + (1 | patient),
+    data = subset(df_cases, !participant %in% c("0_5", "0_6")),
     family = binomial
 )
 glmer_markdown(m_sens1, caption = "Sensitivity analysis 1: Exclude P1 and P2")
@@ -245,6 +250,8 @@ glmer_markdown(m_sens1, caption = "Sensitivity analysis 1: Exclude P1 and P2")
 cat("\nRandom Effects Variance:\n")
 VarCorr(m_sens1)
 ```
+
+The findings were the same as in the primary analysis: prediction support continued to be a strong predictor of an exact diagnostic match (OR = 3.85, 95\% CI [2.09, 7.08], z = 4.32, p < .001), whereas case-based support (OR = 1.17, 95\% CI [0.68, 2.03], p = .570) and the interaction term (OR = 0.56, 95\% CI [0.24, 1.28], p = .170) remained non-significant. The fixed-effect estimates and random-effect variances were numerically identical to those from the primary model, suggesting that the approximated interval measurements for these two participants did not meaningfully affect the results and that the main conclusions are not driven by measurement imprecision in this subset.
 
 **Is the model fitted properly?**
 ```{r}
@@ -256,119 +263,62 @@ sim_res <- simulateResiduals(fittedModel = m_sens1, n = 250)
 plot(sim_res)
 ```
 
-### Sensitivity analysis 2: Single vs Multi-label
+Simulated residual checks again provided no indication of model misfit (KS test p = .96; dispersion test p = .82; outlier test p = .33).
 
-```{r}
-single_sub <- subset(df_cases, is_multilabel == "Single-label")
-multi_sub <- subset(df_cases, is_multilabel == "Multi-label")
-cat("Single label n =", nrow(single_sub), "\nMulti label n =", nrow(multi_sub), "\n")
-```
-Error is much larger on the multi-label subset, but its number of samples is twice as small.
 
-#### 2A: Single-label
-```{r}
-m_sens2_single <- glmer(
-    fully_correct ~ pred_support * case_support + (1 | participant) + (1 | patient),
-    data = subset(df_cases, is_multilabel == "Single-label"),
-    family = binomial
-)
-glmer_markdown(m_sens2_single, caption = "Sensitivity 2a: Single-label Cases Subgroup")
-```
+### Sensitivity analysis 2: Case difficulty & trial order
 
-```{r}
-#| fig-width: 12
-#| fig-height: 6
-#| out-width: "100%"
-#| fig-align: "center"
-sim_res <- simulateResiduals(fittedModel = m_sens2_single, n = 250)
-plot(sim_res)
-```
+To determine whether trial sequence or previous clinical experience acted as confounders or moderators of the main effects, we re-estimated the model including these variables as covariates.
 
-#### 2B: Multi-label
-```{r}
-
-m_sens2_multi <- glmer(
-    fully_correct ~ pred_support * case_support + (1 | participant) + (1 | patient),
-    data = subset(df_cases, is_multilabel == "Multi-label"),
-    family = binomial
-)
-
-glmer_markdown(m_sens2_multi, caption = "Sensitivity 2b: Multi-label Cases Subgroup")
-```
-
-```{r}
-#| fig-width: 12
-#| fig-height: 6
-#| out-width: "100%"
-#| fig-align: "center"
-sim_res <- simulateResiduals(fittedModel = m_sens2_multi, n = 250)
-plot(sim_res)
-```
-
-### Sensitivity analysis 3: Case difficulty & trial order
 
 ``` {r}
-m_sens3 <- glmer(
-    fully_correct ~ pred_support * case_support + trial_order + baseline_case_accuracy + (1 | participant) + (1 | patient),
+m_sens2 <- glmer(
+    exact_match ~ pred_support * case_support + trial_order + baseline_case_accuracy + (1 | participant) + (1 | patient),
     data = df_cases,
     family = binomial
 )
 
-glmer_markdown(m_sens3, caption = "Sensitivity 3: case difficulty and trial order")
+glmer_markdown(m_sens2, caption = "Sensitivity 3: case difficulty and trial order")
 ```
+
+Neither trial order (OR = 1.02, 95\% CI [0.95, 1.10], p = .533) nor experience level (High ECG exposure group vs. reference, OR = 0.88, 95\% CI [0.41, 1.90], p = .751) significantly predicted the outcome, and the estimates for prediction support, case-based support, and their interaction matched those in the primary model.
+
 
 ```{r}
 #| fig-width: 12
 #| fig-height: 6
 #| out-width: "100%"
 #| fig-align: "center"
-sim_res <- simulateResiduals(fittedModel = m_sens3, n = 250)
+sim_res <- simulateResiduals(fittedModel = m_sens2, n = 250)
 plot(sim_res)
 ```
 
-### Sensitivity analysis 4: Exclude patient 655
-
-Results of patient 655 seemed a bit off.
-Olof recommended not mentioning it.
-
-```{r}
-m_sens4 <- glmer(
-    fully_correct ~ pred_support * case_support + (1 | participant) + (1 | patient),
-    data = subset(df_cases, patient != "655"),
-    family = binomial
-)
-glmer_markdown(m_sens4, caption = "Sensitivity 4: exclude patient 655")
-```
-
-```{r}
-#| fig-width: 12
-#| fig-height: 6
-#| out-width: "100%"
-#| fig-align: "center"
-sim_res <- simulateResiduals(fittedModel = m_sens4, n = 250)
-plot(sim_res)
-```
 
 ## LMM on Jaccard
 
-### Model 3: Linear Mixed Model on Jaccard
+### Model 3: Linear Mixed Model on patient Jaccard scores
 
 ```{r}
-m3_jaccard <- lmer(
+m4_jaccard <- lmer(
     jaccard ~ pred_support * case_support + (1 | participant) + (1 | patient),
     data = df_cases
 )
 
-lmer_markdown(m3_jaccard, caption = "Model 3: Linear Mixed Model on Jaccard Index")
+lmer_markdown(m4_jaccard, caption = "Model 4: Linear Mixed Model on Jaccard Index")
 ```
 
-**Is the model fitted properly?** This doesn't seem to be the case
+Jaccard scores showed the same descriptive ordering as the exact-match outcome: mean participant-level Jaccard scores were .670 at baseline, .838 with prediction support, .710 with case-based support, and .798 with combined support.
+
+**Is the model fitted properly?**
+
+diagnostics for the corresponding linear mixed-effects model indicated poor fit (KS test p < .001, with evidence of heteroscedasticity).
+We therefore do not interpret inferential coefficients for the Jaccard outcome and use it only to describe patterns of partial diagnostic agreement.
 ```{r}
 #| fig-width: 12
 #| fig-height: 6
 #| out-width: "100%"
 #| fig-align: "center"
-sim_res <- simulateResiduals(fittedModel = m3_jaccard, n = 250)
+sim_res <- simulateResiduals(fittedModel = m4_jaccard, n = 250)
 plot(sim_res)
 ```
 
@@ -379,40 +329,29 @@ plot(sim_res)
 glmer_markdown(m1_primary, caption = "Main Model (Exact match)")
 glmer_markdown(m2_covariates, caption = "Adjusted for trial_order and experience")
 glmer_markdown(m_sens1, caption = "Sensitivity 1: Exclude P1 and P2 (no interval feature)")
-glmer_markdown(m_sens2_single, caption = "Sensitivity 2a: Single-label Cases Subgroup")
-glmer_markdown(m_sens2_multi, caption = "Sensitivity 2b: Multi-label Cases Subgroup")
-glmer_markdown(m_sens3, caption = "Sensitivity 3: case difficulty and trial order")
-glmer_markdown(m_sens4, caption = "Sensitivity 4: exclude patient 655")
+glmer_markdown(m_sens2, caption = "Sensitivity 2: case difficulty and trial order")
+lmer_markdown(m4_jaccard, caption = "Model 4: Linear Mixed Model on Jaccard Index")
 ```
 
 ### Pairwise comparisons between study arms
 
 #### Main model (Exact match)
 ``` {r}
-model_arms <- glmer(
-    fully_correct ~ arm_factor + (1 | participant) + (1 | patient),
+modelarms_exactmatch <- glmer(
+    exact_match ~ arm_factor + (1 | participant) + (1 | patient),
     data = df_cases,
     family = binomial
 )
-emm <- emmeans(model_arms, ~arm_factor, type = "response")
+emm <- emmeans(modelarms_exactmatch, ~arm_factor, type = "response")
 print(pairs(emm))
 ```
 
 #### Jaccard model
 ``` {r}
-model_arms <- lmer(
+modelarms_jaccard <- lmer(
     jaccard ~ arm_factor + (1 | participant) + (1 | patient),
     data = df_cases,
 )
-emm <- emmeans(model_arms, ~arm_factor, type = "response")
+emm <- emmeans(modelarms_jaccard, ~arm_factor, type = "response")
 print(pairs(emm))
-```
-
-```{r}
-#| fig-width: 12
-#| fig-height: 6
-#| out-width: "100%"
-#| fig-align: "center"
-sim_res <- simulateResiduals(fittedModel = model_arms, n = 250)
-plot(sim_res)
 ```
